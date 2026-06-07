@@ -2,7 +2,6 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com data: blob:;">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام البلاغات الطبية الحرجة</title>
 
@@ -198,38 +197,34 @@ const SB_KEY = "sb_publishable_dNggN0X10i4g-byH9Z_zhA_Ybjkr9rF";
 const SB_HDR = {
   "Content-Type":"application/json",
   "apikey":SB_KEY,
-  "Authorization":"Bearer "+SB_KEY,
   "Prefer":"return=representation"
 };
-async function sbFetch(url, opts={}){
-  const res=await fetch(url,{headers:SB_HDR,...opts});
-  if(!res.ok){
-    const txt=await res.text();
-    console.error("sbFetch",url,res.status,txt);
-    throw new Error(res.status+": "+txt);
-  }
-  const ct=res.headers.get("content-type")||"";
-  if(ct.includes("application/json")) return await res.json();
-  return [];
+async function sbReq(method, url, body=null){
+  const opts={method,headers:{"apikey":SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  if(!r.ok){const t=await r.text();console.error(method,url,r.status,t);throw new Error(r.status);}
+  if(r.status===204||r.headers.get("content-length")==="0") return [];
+  return await r.json();
 }
-async function sbSelect(table, filters={}){
+async function sbSelect(table,filters={}){
   let url=SB_URL+"/"+table+"?select=*";
   for(const [k,v] of Object.entries(filters)) url+=`&${k}=eq.${encodeURIComponent(v)}`;
-  return await sbFetch(url);
+  return await sbReq("GET",url);
 }
 async function sbInsert(table,row){
-  const d=await sbFetch(SB_URL+"/"+table,{method:"POST",body:JSON.stringify(row)});
+  const d=await sbReq("POST",SB_URL+"/"+table,row);
   return Array.isArray(d)?d[0]:d;
 }
 async function sbUpdate(table,id,changes){
-  await sbFetch(SB_URL+"/"+table+"?id=eq."+id,{method:"PATCH",body:JSON.stringify(changes)});
+  await sbReq("PATCH",SB_URL+"/"+table+"?id=eq."+id,changes);
 }
 async function sbDelete(table,id){
-  await fetch(SB_URL+"/"+table+"?id=eq."+id,{method:"DELETE",headers:{...SB_HDR,"Prefer":""}});
+  try{await fetch(SB_URL+"/"+table+"?id=eq."+id,{method:"DELETE",headers:{"apikey":SB_KEY}});}catch(e){}
 }
 async function sbSelectOrdered(table,orderCol,limit=500){
   const url=SB_URL+"/"+table+"?select=*&order="+orderCol+".desc&limit="+limit;
-  return await sbFetch(url);
+  return await sbReq("GET",url);
 }
 
 // تحويل صفوف Supabase إلى تنسيق التطبيق
