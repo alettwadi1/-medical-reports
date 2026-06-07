@@ -466,7 +466,8 @@ function renderDashboard(){
 // NEW REPORT
 function renderNewReport(){
   const u=S.user;
-  const centers=DB.centers.filter(c=>c.hospitalId===u.hospitalId);
+  // المدير يرى جميع المراكز، غيره يرى مراكز مستشفاه فقط
+  const visibleHospitals=u.role==='admin'?DB.hospitals:DB.hospitals.filter(h=>h.id===u.hospitalId);
   const f=S.reportForm;
   return `
   <div class="page-header">
@@ -508,7 +509,13 @@ function renderNewReport(){
       <div class="form-group"><label class="form-label">المركز الصحي المستهدف <span class="req">*</span></label>
         <select class="form-control" id="f-center">
           <option value="">-- اختر المركز --</option>
-          ${centers.map(c=>`<option value="${c.id}" ${f.centerId==c.id?'selected':''}>${c.name}</option>`).join('')}
+          ${visibleHospitals.map(h=>{
+            const hCenters=DB.centers.filter(c=>c.hospitalId===h.id);
+            if(!hCenters.length) return '';
+            return `<optgroup label="🏥 ${h.name}">
+              ${hCenters.map(c=>`<option value="${c.id}" ${f.centerId==c.id?'selected':''}>${c.name}</option>`).join('')}
+            </optgroup>`;
+          }).join('')}
         </select></div>
       <div class="form-group full"><label class="form-label">ملاحظات إضافية</label>
         <textarea class="form-control" id="f-notes" rows="2" placeholder="أي معلومات إضافية مهمة">${f.notes||''}</textarea></div>
