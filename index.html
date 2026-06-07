@@ -249,9 +249,9 @@ const stBadge=(s)=>({sent:'<span class="badge badge-sent">مرسل</span>',recei
 const roleLabel=(r)=>({admin:'مدير النظام',hospital_staff:'موظف مستشفى',center_staff:'موظف مركز'}[r]||r);
 
 function userReports(u){
-  let r=DB.reports.filter(rep=>rep.hospitalId===u.hospitalId);
-  if(u.role==='center_staff') r=r.filter(rep=>rep.centerId===u.centerId);
-  return r;
+  if(u.role==='admin') return [...DB.reports];
+  if(u.role==='center_staff') return DB.reports.filter(r=>r.centerId===u.centerId);
+  return DB.reports.filter(r=>r.hospitalId===u.hospitalId);
 }
 function unreadCount(u){return userReports(u).filter(r=>r.status==='sent').length;}
 function diffMins(date,time,dt2){
