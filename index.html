@@ -191,41 +191,42 @@ textarea.form-control{resize:vertical;min-height:82px}
 
 <script>
 // ===================== DATABASE =====================
-// ===================== SUPABASE REST API =====================
-const SB_URL = "https://xubygbcsvmphbggnzhbt.supabase.co/rest/v1";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YnlnYmNzdm1waGJnZ256aGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDg2MTQsImV4cCI6MjA5NjQyNDYxNH0.Q3p09tiRBjiBWXsh2mnqwtlER7MxH3VOwfe26o5iIHI";
-const SB_HDR = {
-  "Content-Type":"application/json",
-  "apikey":SB_KEY,
-  "Authorization":"Bearer "+SB_KEY,
-  "Prefer":"return=representation"
-};
-async function sbReq(method, url, body=null){
-  const opts={method,headers:{"apikey":SB_KEY,"Content-Type":"application/json","Prefer":"return=representation"}};
-  if(body) opts.body=JSON.stringify(body);
-  const r=await fetch(url,opts);
-  if(!r.ok){const t=await r.text();console.error(method,url,r.status,t);throw new Error(r.status);}
-  if(r.status===204||r.headers.get("content-length")==="0") return [];
-  return await r.json();
+// ===================== SUPABASE عبر Netlify Function =====================
+const PROXY = "/.netlify/functions/sb";
+
+async function sbReq(method, table, body=null, filter="", order="", limit=""){
+  let url = PROXY + "?table=" + table;
+  if(filter) url += "&filter=" + encodeURIComponent(filter);
+  if(order)  url += "&order=" + order;
+  if(limit)  url += "&limit=" + limit;
+  const opts = {method, headers:{"Content-Type":"application/json"}};
+  if(body) opts.body = JSON.stringify(body);
+  try{
+    const r = await fetch(url, opts);
+    if(!r.ok){ const t=await r.text(); console.error(method,table,r.status,t); throw new Error(r.status+": "+t); }
+    if(r.status===204) return [];
+    return await r.json();
+  }catch(e){
+    console.error("sbReq failed:",method,table,e.message);
+    throw e;
+  }
 }
-async function sbSelect(table,filters={}){
-  let url=SB_URL+"/"+table+"?select=*";
-  for(const [k,v] of Object.entries(filters)) url+=`&${k}=eq.${encodeURIComponent(v)}`;
-  return await sbReq("GET",url);
+async function sbSelect(table, filters={}){
+  const parts=Object.entries(filters).map(([k,v])=>`${k}=eq.${encodeURIComponent(v)}`).join("&");
+  return await sbReq("GET", table, null, parts);
 }
 async function sbInsert(table,row){
-  const d=await sbReq("POST",SB_URL+"/"+table,row);
+  const d=await sbReq("POST",table,row);
   return Array.isArray(d)?d[0]:d;
 }
 async function sbUpdate(table,id,changes){
-  await sbReq("PATCH",SB_URL+"/"+table+"?id=eq."+id,changes);
+  await sbReq("PATCH",table,changes,"id=eq."+id);
 }
 async function sbDelete(table,id){
-  try{await fetch(SB_URL+"/"+table+"?id=eq."+id,{method:"DELETE",headers:{"apikey":SB_KEY}});}catch(e){}
+  try{ await sbReq("DELETE",table,null,"id=eq."+id); }catch(e){}
 }
 async function sbSelectOrdered(table,orderCol,limit=500){
-  const url=SB_URL+"/"+table+"?select=*&order="+orderCol+".desc&limit="+limit;
-  return await sbReq("GET",url);
+  return await sbReq("GET",table,null,"",orderCol,limit);
 }
 
 // تحويل صفوف Supabase إلى تنسيق التطبيق
