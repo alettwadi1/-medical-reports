@@ -193,10 +193,11 @@ textarea.form-control{resize:vertical;min-height:82px}
 // ===================== DATABASE =====================
 // ===================== SUPABASE REST API =====================
 const SB_URL = "https://xubygbcsvmphbggnzhbt.supabase.co/rest/v1";
-const SB_KEY = "sb_publishable_dNggN0X10i4g-byH9Z_zhA_Ybjkr9rF";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YnlnYmNzdm1waGJnZ256aGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDg2MTQsImV4cCI6MjA5NjQyNDYxNH0.Q3p09tiRBjiBWXsh2mnqwtlER7MxH3VOwfe26o5iIHI";
 const SB_HDR = {
   "Content-Type":"application/json",
   "apikey":SB_KEY,
+  "Authorization":"Bearer "+SB_KEY,
   "Prefer":"return=representation"
 };
 async function sbReq(method, url, body=null){
