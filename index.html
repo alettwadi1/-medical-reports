@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام البلاغات الطبية الحرجة</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap');
@@ -190,26 +191,45 @@ textarea.form-control{resize:vertical;min-height:82px}
 
 <script>
 // ===================== DATABASE =====================
+// ===================== SUPABASE =====================
+const _sb = supabase.createClient(
+  "https://xubygbcsvmphbggnzhbt.supabase.co",
+  "sb_publishable_dNggN0X10i4g-byH9Z_zhA_Ybjkr9rF"
+);
+
+// دوال Supabase المساعدة
+async function sbSelect(table, filters={}){
+  let q=_sb.from(table).select('*');
+  for(const [k,v] of Object.entries(filters)) q=q.eq(k,v);
+  const {data,error}=await q;
+  if(error){console.error(table,error);return [];}
+  return data||[];
+}
+async function sbInsert(table,row){
+  const {data,error}=await _sb.from(table).insert(row).select().single();
+  if(error){console.error('insert',table,error);return null;}
+  return data;
+}
+async function sbUpdate(table,id,changes){
+  const {error}=await _sb.from(table).update(changes).eq('id',id);
+  if(error){console.error('update',table,error);}
+}
+async function sbDelete(table,id){
+  const {error}=await _sb.from(table).delete().eq('id',id);
+  if(error){console.error('delete',table,error);}
+}
+
+// تحويل صفوف Supabase إلى تنسيق التطبيق
+function mapHosp(r){return {id:r.id,name:r.name};}
+function mapCenter(r){return {id:r.id,hospitalId:r.hospital_id,name:r.name};}
+function mapUser(r){return {id:r.id,username:r.username,password:r.password,name:r.name,role:r.role,hospitalId:r.hospital_id,centerId:r.center_id};}
+function mapReport(r){return {id:r.id,reportNo:r.report_no,patientName:r.patient_name,fileNo:r.file_no,idNo:r.id_no||'',testName:r.test_name,criticalResult:r.critical_result,severity:r.severity,notes:r.notes||'',hospitalId:r.hospital_id,centerId:r.center_id,reporterName:r.reporter_name,labTech:r.lab_tech,date:r.date,time:r.time,status:r.status,viewedAt:r.viewed_at,viewedBy:r.viewed_by};}
+function mapLog(r){return {id:r.id,action:r.action,userName:r.user_name,userRole:r.user_role,details:r.details,ts:r.ts};}
+
 const DB = {
-  hospitals:[
-    {id:1,name:'مستشفى الملك فهد العام'},
-    {id:2,name:'مستشفى الأمير محمد بن عبدالعزيز'},
-  ],
-  centers:[
-    {id:1,hospitalId:1,name:'مركز صحي الخالدية'},
-    {id:2,hospitalId:1,name:'مركز صحي الروضة'},
-    {id:3,hospitalId:1,name:'مركز صحي الأندلس'},
-    {id:4,hospitalId:2,name:'مركز صحي الصفاء'},
-    {id:5,hospitalId:2,name:'مركز صحي النخيل'},
-  ],
-  users:[
-    {id:1,username:'admin',password:'admin123',name:'أحمد الزهراني',role:'admin',hospitalId:1,centerId:null},
-    {id:2,username:'hosp1',password:'hosp123',name:'سارة القحطاني',role:'hospital_staff',hospitalId:1,centerId:null},
-    {id:3,username:'center1',password:'center123',name:'محمد الغامدي',role:'center_staff',hospitalId:1,centerId:1},
-    {id:4,username:'center2',password:'center456',name:'نورة العمري',role:'center_staff',hospitalId:1,centerId:2},
-    {id:5,username:'hosp2',password:'hosp456',name:'خالد الدوسري',role:'hospital_staff',hospitalId:2,centerId:null},
-    {id:6,username:'center4',password:'cen456',name:'ريم الشهري',role:'center_staff',hospitalId:2,centerId:4},
-  ],
+  hospitals:[],
+  centers:[],
+  users:[],
   reports:[
     {id:1,reportNo:'CR-2024-0001',patientName:'عبدالله المطيري',fileNo:'MF-44231',idNo:'1234567890',testName:'تعداد الدم الشامل - WBC',criticalResult:'WBC: 0.5 x10³/µL (قيمة حرجة)',severity:'critical',notes:'المريض يعاني من نقص حاد في كريات الدم البيضاء',hospitalId:1,centerId:1,reporterName:'سارة القحطاني',labTech:'د. فاطمة السلمي',date:'2024-11-15',time:'09:32',status:'received',viewedAt:'2024-11-15 10:05',viewedBy:'محمد الغامدي'},
     {id:2,reportNo:'CR-2024-0002',patientName:'فاطمة العتيبي',fileNo:'MF-58901',idNo:'',testName:'جلوكوز الدم العشوائي',criticalResult:'Glucose: 48 mg/dL (منخفض جداً)',severity:'critical',notes:'يستدعي تدخلاً فورياً',hospitalId:1,centerId:2,reporterName:'سارة القحطاني',labTech:'د. سعد الحارثي',date:'2024-11-16',time:'11:20',status:'sent',viewedAt:null,viewedBy:null},
@@ -276,16 +296,31 @@ function playBeep(){
 }
 function addLog(action,details){
   if(!S.user)return;
-  DB.auditLogs.unshift({id:DB.auditLogs.length+1,action,userName:S.user.name,userRole:S.user.role,details,ts:nowDT()});
+  // حفظ في Supabase بشكل غير متزامن
+  sbInsert('audit_logs',{action,user_name:S.user.name,user_role:S.user.role,details,ts:nowDT()});
+  DB.auditLogs.unshift({id:Date.now(),action,userName:S.user.name,userRole:S.user.role,details,ts:nowDT()});
 }
-function saveData(){
-  try{localStorage.setItem('medReports',JSON.stringify({reports:DB.reports,nextId:DB.nextId,nextNum:DB.nextNum,auditLogs:DB.auditLogs,users:DB.users,hospitals:DB.hospitals,centers:DB.centers}));}catch(e){}
-}
-function loadData(){
+function saveData(){} // لم تعد تُستخدم — Supabase يحفظ مباشرة
+
+async function loadData(){
   try{
-    const d=localStorage.getItem('medReports');
-    if(d){const p=JSON.parse(d);DB.reports=p.reports;DB.nextId=p.nextId;DB.nextNum=p.nextNum;DB.auditLogs=p.auditLogs||[];if(p.users&&p.users.length>0)DB.users=p.users;if(p.hospitals&&p.hospitals.length>0)DB.hospitals=p.hospitals;if(p.centers&&p.centers.length>0)DB.centers=p.centers;}
-  }catch(e){}
+    const [hosps,centers,users,reports,logs]=await Promise.all([
+      sbSelect('hospitals'),
+      sbSelect('health_centers'),
+      sbSelect('users'),
+      _sb.from('reports').select('*').order('created_at',{ascending:false}).then(r=>r.data||[]),
+      _sb.from('audit_logs').select('*').order('created_at',{ascending:false}).limit(200).then(r=>r.data||[]),
+    ]);
+    DB.hospitals=hosps.map(mapHosp);
+    DB.centers=centers.map(mapCenter);
+    DB.users=users.map(mapUser);
+    DB.reports=reports.map(mapReport);
+    DB.auditLogs=logs.map(mapLog);
+    // رقم البلاغ التالي
+    const nums=DB.reports.map(r=>parseInt(r.reportNo.split('-')[2]||0)).filter(n=>!isNaN(n));
+    DB.nextNum=nums.length?Math.max(...nums)+1:1;
+    DB.nextId=DB.reports.length?Math.max(...DB.reports.map(r=>r.id))+1:1;
+  }catch(e){console.error('loadData',e);}
 }
 
 // ===================== RENDER ENGINE =====================
@@ -1094,25 +1129,28 @@ function filterEng(el){
   }
 }
 
-function doLogin(){
-  // تنظيف شامل: إزالة مسافات + تحويل إلى أحرف صغيرة للمقارنة
+async function doLogin(){
   const clean=v=>(v||'').replace(/[\u200B-\u200D\uFEFF\s]+/g,'').toLowerCase();
   const rawU=document.getElementById('inp-user')?.value||'';
   const rawP=document.getElementById('inp-pass')?.value||'';
   const u=clean(rawU);
   const p=rawP.trim();
-  // مقارنة اسم المستخدم بشكل غير حساس لحالة الأحرف
+  // تحديث بيانات المستخدمين من Supabase أولاً
+  const rows=await sbSelect('users');
+  DB.users=rows.map(mapUser);
   const user=DB.users.find(x=>x.username.toLowerCase()===u&&x.password===p);
   if(!user){
     S.loginErr='اسم المستخدم أو كلمة المرور غير صحيحة';
     render();return;
   }
   S.user=user;S.view=user.role==='center_staff'?'center-inbox':'dashboard';S.loginErr='';
-  addLog('تسجيل دخول',`دخل ${user.name} (${roleLabel(user.role)}) إلى النظام`);
-  saveData();render();
+  // سجل الدخول في Supabase
+  await sbInsert('audit_logs',{action:'تسجيل دخول',user_name:user.name,user_role:user.role,details:`دخل ${user.name} (${roleLabel(user.role)}) إلى النظام`,ts:nowDT()});
+  await loadData();
+  render();
 }
 
-function submitReport(){
+async function submitReport(){
   const u=S.user;
   const get=id=>document.getElementById(id)?.value.trim();
   const patient=get('f-patient'),fileNo=get('f-fileno'),idNo=get('f-idno');
@@ -1122,10 +1160,12 @@ function submitReport(){
     toast('⚠️ يرجى ملء جميع الحقول المطلوبة');return;
   }
   const rNo=genNo();
-  const newR={id:DB.nextId++,reportNo:rNo,patientName:patient,fileNo,idNo,testName:test,criticalResult:result,severity:sev,notes,hospitalId:u.hospitalId,centerId:parseInt(centerId),reporterName:u.name,labTech:labtech,date:nowDate(),time:nowTime(),status:'sent',viewedAt:null,viewedBy:null};
-  DB.reports.unshift(newR);DB.nextNum++;
+  const row={report_no:rNo,patient_name:patient,file_no:fileNo,id_no:idNo||'',test_name:test,critical_result:result,severity:sev,notes:notes||'',hospital_id:u.hospitalId,center_id:parseInt(centerId),reporter_name:u.name,lab_tech:labtech,date:nowDate(),time:nowTime(),status:'sent'};
+  const saved=await sbInsert('reports',row);
+  if(!saved){toast('❌ خطأ في حفظ البلاغ');return;}
   addLog('إرسال بلاغ',`أُرسل البلاغ ${rNo} للمريض ${patient} إلى ${center(parseInt(centerId))?.name}`);
-  saveData();playBeep();
+  playBeep();
+  await loadData();
   S.reportForm={};S.successMsg=`تم إرسال البلاغ ${rNo} بنجاح وإشعار ${center(parseInt(centerId))?.name}`;
   S.view='reports';render();
 }
@@ -1135,12 +1175,16 @@ function openReport(id){
   S.showNotif=false;render();
 }
 
-function acknowledgeReport(){
+async function acknowledgeReport(){
   const r=S.selectedReport;if(!r)return;
-  r.status='received';r.viewedAt=nowDT();r.viewedBy=S.user.name;
+  const dt=nowDT();
+  await sbUpdate('reports',r.id,{status:'received',viewed_at:dt,viewed_by:S.user.name});
+  r.status='received';r.viewedAt=dt;r.viewedBy=S.user.name;
   addLog('تأكيد استلام',`اطلع على البلاغ ${r.reportNo} للمريض ${r.patientName}`);
-  saveData();toast('✅ تم تسجيل الاطلاع بنجاح');
-  S.selectedReport=r;render();
+  toast('✅ تم تسجيل الاطلاع بنجاح');
+  await loadData();
+  S.selectedReport=DB.reports.find(x=>x.id===r.id)||r;
+  render();
 }
 
 function doExport(type){
@@ -1171,7 +1215,7 @@ function onHospChange(){
   const centers=DB.centers.filter(c=>c.hospitalId==hospId);
   centerSel.innerHTML='<option value="">-- اختر المركز --</option>'+centers.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
 }
-function saveUser(){
+async function saveUser(){
   const isEdit=S.userModal?.editId;
   const get=id=>document.getElementById(id)?.value.trim();
   const name=get('uf-name'),username=get('uf-username'),pass=get('uf-pass');
@@ -1179,33 +1223,29 @@ function saveUser(){
   if(!name||!username||!role||!hospId){S.userFormErr='يرجى ملء جميع الحقول المطلوبة';render();return;}
   if(!isEdit&&!pass){S.userFormErr='كلمة المرور مطلوبة للمستخدم الجديد';render();return;}
   if(role==='center_staff'&&!centerId){S.userFormErr='يجب تحديد المركز الصحي لموظف المركز';render();return;}
-  // Check duplicate username
   const dupCheck=DB.users.find(u=>u.username===username&&u.id!==(isEdit||0));
   if(dupCheck){S.userFormErr='اسم المستخدم مستخدم مسبقاً، اختر اسماً آخر';render();return;}
   if(isEdit){
-    const u=DB.users.find(x=>x.id===isEdit);
-    if(!u)return;
-    u.name=name;u.username=username;u.role=role;u.hospitalId=hospId;
-    u.centerId=role==='center_staff'?centerId:null;
-    if(pass) u.password=pass;
+    const changes={name,username,role,hospital_id:hospId,center_id:role==='center_staff'?centerId:null};
+    if(pass) changes.password=pass;
+    await sbUpdate('users',isEdit,changes);
     addLog('تعديل مستخدم',`تم تعديل بيانات المستخدم: ${name} (${username})`);
     toast('✅ تم حفظ التعديلات بنجاح');
   } else {
-    const newU={id:Math.max(...DB.users.map(u=>u.id))+1,name,username,password:pass,role,hospitalId:hospId,centerId:role==='center_staff'?centerId:null};
-    DB.users.push(newU);
+    await sbInsert('users',{name,username,password:pass,role,hospital_id:hospId,center_id:role==='center_staff'?centerId:null});
     addLog('إضافة مستخدم',`تم إضافة مستخدم جديد: ${name} (${username}) بصلاحية ${roleLabel(role)}`);
     toast('✅ تم إضافة المستخدم بنجاح');
   }
-  saveData();S.userModal=null;S.userForm={};render();
+  await loadData();S.userModal=null;S.userForm={};render();
 }
-function confirmDeleteUser(){
+async function confirmDeleteUser(){
   const id=S.userModal?.deleteId;
   const u=DB.users.find(x=>x.id===id);
   if(!u)return;
-  DB.users.splice(DB.users.indexOf(u),1);
+  await sbDelete('users',id);
   addLog('حذف مستخدم',`تم حذف المستخدم: ${u.name} (${u.username})`);
-  saveData();toast('تم حذف المستخدم');
-  S.userModal=null;render();
+  toast('تم حذف المستخدم');
+  await loadData();S.userModal=null;render();
 }
 
 // ===================== ENTITY MANAGEMENT FUNCTIONS =====================
@@ -1218,65 +1258,68 @@ function openEditEntity(type,id){
 function openDeleteEntity(type,id){
   S.entityModal={type,deleteId:id};S.entityFormErr='';render();
 }
-function saveEntity(){
+async function saveEntity(){
   const m=S.entityModal;
   const isHosp=m.type==='hosp';
   const isEdit=!!m.editId;
+  const table=isHosp?'hospitals':'health_centers';
   const name=document.getElementById('ef-name')?.value.trim();
   const hospId=isHosp?null:parseInt(document.getElementById('ef-hosp')?.value||0);
   if(!name){S.entityFormErr='يرجى إدخال الاسم';render();return;}
   if(!isHosp&&!hospId){S.entityFormErr='يرجى تحديد المستشفى';render();return;}
-  // duplicate check
   const list=isHosp?DB.hospitals:DB.centers;
   const dup=list.find(x=>x.name===name&&x.id!==(isEdit?m.editId:0));
   if(dup){S.entityFormErr='هذا الاسم موجود مسبقاً';render();return;}
   if(isEdit){
-    const item=list.find(x=>x.id===m.editId);
-    if(!item)return;
-    item.name=name;
-    if(!isHosp) item.hospitalId=hospId;
+    const changes=isHosp?{name}:{name,hospital_id:hospId};
+    await sbUpdate(table,m.editId,changes);
     addLog(`تعديل ${isHosp?'مستشفى':'مركز'}`,`تم تعديل: ${name}`);
     toast('✅ تم حفظ التعديلات');
   } else {
-    const newId=Math.max(0,...list.map(x=>x.id))+1;
-    if(isHosp){
-      DB.hospitals.push({id:newId,name});
-    } else {
-      DB.centers.push({id:newId,hospitalId:hospId,name});
-    }
+    const row=isHosp?{name}:{name,hospital_id:hospId};
+    await sbInsert(table,row);
     addLog(`إضافة ${isHosp?'مستشفى':'مركز'}`,`تمت الإضافة: ${name}`);
     toast(`✅ تمت إضافة ${isHosp?'المستشفى':'المركز'} بنجاح`);
   }
-  saveData();S.entityModal=null;S.entityForm={};render();
+  await loadData();S.entityModal=null;S.entityForm={};render();
 }
-function confirmDeleteEntity(){
+async function confirmDeleteEntity(){
   const m=S.entityModal;
   const isHosp=m.type==='hosp';
+  const table=isHosp?'hospitals':'health_centers';
   const list=isHosp?DB.hospitals:DB.centers;
   const item=list.find(x=>x.id===m.deleteId);
   if(!item)return;
-  list.splice(list.indexOf(item),1);
+  await sbDelete(table,m.deleteId);
   addLog(`حذف ${isHosp?'مستشفى':'مركز'}`,`تم حذف: ${item.name}`);
-  saveData();toast('تم الحذف بنجاح');
-  S.entityModal=null;render();
+  toast('تم الحذف بنجاح');
+  await loadData();S.entityModal=null;render();
 }
 
 // ===================== REPORT DELETE =====================
-function confirmDeleteReport(id, fromModal=false){
+async function confirmDeleteReport(id, fromModal=false){
   if(!confirm('هل أنت متأكد من حذف هذا البلاغ نهائياً؟ لا يمكن التراجع.')) return;
-  const idx=DB.reports.findIndex(r=>r.id===id);
-  if(idx===-1) return;
-  const r=DB.reports[idx];
-  DB.reports.splice(idx,1);
+  const r=DB.reports.find(x=>x.id===id);
+  if(!r) return;
+  await sbDelete('reports',id);
   addLog('حذف بلاغ',`حُذف البلاغ ${r.reportNo} للمريض ${r.patientName}`);
-  saveData();
   toast('🗑 تم حذف البلاغ بنجاح');
   if(fromModal) S.selectedReport=null;
-  render();
+  await loadData();render();
 }
 
 // ===================== INIT =====================
-loadData();render();
+(async()=>{
+  // عرض شاشة تحميل
+  document.getElementById('root').innerHTML=`
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A2980,#26D0CE);gap:16px">
+      <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="color:#fff;font-size:15px;font-family:Cairo,sans-serif;font-weight:600">جاري تحميل النظام...</div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>`;
+  await loadData();
+  render();
+})();
 </script>
 </body>
 </html>
