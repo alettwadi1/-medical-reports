@@ -530,9 +530,11 @@ function renderNewReport(){
 // REPORTS
 function renderReports(){
   const u=S.user;
+  const isAdmin=u.role==='admin';
   let all=userReports(u);
   const total=all.length,sentC=all.filter(r=>r.status==='sent').length,recvC=all.filter(r=>r.status==='received').length;
   if(S.filterStatus!=='all') all=all.filter(r=>r.status===S.filterStatus);
+  const colSpan=isAdmin?13:11;
   return `
   <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
     <div><h2>سجل البلاغات</h2><p>${total} بلاغ إجمالي</p></div>
@@ -545,8 +547,14 @@ function renderReports(){
   </div>
   <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap"><table>
-    <tr><th>رقم البلاغ</th><th>المريض</th><th>رقم الملف</th><th>التحليل</th><th>الخطورة</th><th>المركز</th><th>الحالة</th><th>وقت الإرسال</th><th>وقت الاستلام</th><th>مدة الاستجابة</th><th>تفاصيل</th></tr>
-    ${all.length===0?`<tr><td colspan="11"><div class="empty-state"><span class="icon">📭</span><p>لا توجد بلاغات</p></div></td></tr>`:
+    <tr>
+      <th>رقم البلاغ</th><th>المريض</th><th>رقم الملف</th><th>التحليل</th><th>الخطورة</th>
+      ${isAdmin?'<th>المستشفى</th>':''}
+      <th>المركز</th><th>الحالة</th>
+      <th>⏱ وقت الإرسال</th><th>✅ وقت الاستلام</th><th>مدة الاستجابة</th>
+      <th>تفاصيل</th>${isAdmin?'<th>حذف</th>':''}
+    </tr>
+    ${all.length===0?`<tr><td colspan="${colSpan}"><div class="empty-state"><span class="icon">📭</span><p>لا توجد بلاغات</p></div></td></tr>`:
     all.map(r=>{
       const mins=r.viewedAt?diffMins(r.date,r.time,r.viewedAt):null;
       const late=mins!==null&&mins>30;
@@ -554,14 +562,27 @@ function renderReports(){
         <td><span class="report-no">${r.reportNo}</span></td>
         <td style="font-weight:700">${r.patientName}</td>
         <td style="font-size:12px">${r.fileNo}</td>
-        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.testName}</td>
+        <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.testName}</td>
         <td>${sevBadge(r.severity)}</td>
+        ${isAdmin?`<td style="font-size:11px;color:#1A5276;font-weight:600">${hosp(r.hospitalId)?.name||'—'}</td>`:''}
         <td style="font-size:12px">${center(r.centerId)?.name||'-'}</td>
         <td>${stBadge(r.status)}</td>
-        <td style="font-size:12px;color:#7F8C8D">${r.date} ${r.time}</td>
-        <td style="font-size:12px;color:${r.viewedAt?'#1E8449':'#95A5A6'}">${r.viewedAt||'—'}</td>
-        <td style="font-size:12px;font-weight:${late?'700':'400'};color:${mins!==null?(late?'#C0392B':'#1E8449'):'#95A5A6'}">${mins!==null?mins+' د':'—'}</td>
+        <td style="font-size:12px">
+          <div style="color:#2C3E50;font-weight:600">${r.date}</div>
+          <div style="color:#7F8C8D">${r.time}</div>
+        </td>
+        <td style="font-size:12px">
+          ${r.viewedAt
+            ? `<div style="color:#1E8449;font-weight:600">${r.viewedAt.split(' ')[0]}</div>
+               <div style="color:#1E8449">${r.viewedAt.split(' ')[1]}</div>
+               <div style="font-size:11px;color:#7F8C8D">${r.viewedBy}</div>`
+            : '<span style="color:#95A5A6">—</span>'}
+        </td>
+        <td style="font-size:12px;font-weight:${late?'700':'400'};color:${mins!==null?(late?'#C0392B':'#1E8449'):'#95A5A6'}">
+          ${mins!==null?`${mins} د ${late?'⚠️':'✅'}`:'—'}
+        </td>
         <td><button class="btn btn-secondary btn-sm" onclick="openReport(${r.id})">عرض</button></td>
+        ${isAdmin?`<td><button class="btn btn-sm" style="background:#FDF2F2;color:#C0392B;border:1px solid #F1948A" onclick="confirmDeleteReport(${r.id})">🗑</button></td>`:''}
       </tr>`;}).join('')}
   </table></div></div>`;
 }
@@ -976,9 +997,44 @@ function renderModal(){
         </div>
       </div>`:''}
       ${r.notes?`<div class="detail-section"><div style="font-weight:700;font-size:13px;margin-bottom:8px">📝 ملاحظات</div><div style="background:#F8F9FA;padding:12px 16px;border-radius:8px;font-size:13px;line-height:1.7;border:1px solid #E8ECEF">${r.notes}</div></div>`:''}
+
+      ${(u.role==='admin'||u.role==='hospital_staff')?`
+      <div class="detail-section">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px">⏱ سجل التوقيتات</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div style="background:#EBF5FB;border-radius:8px;padding:12px;text-align:center;border:1px solid #AED6F1">
+            <div style="font-size:11px;color:#1A5276;font-weight:600;margin-bottom:6px">📤 وقت إرسال البلاغ</div>
+            <div style="font-size:15px;font-weight:700;color:#1A5276">${r.time}</div>
+            <div style="font-size:11px;color:#5D6D7E;margin-top:2px">${r.date}</div>
+          </div>
+          <div style="background:${r.viewedAt?'#D5F5E3':'#F4F6F9'};border-radius:8px;padding:12px;text-align:center;border:1px solid ${r.viewedAt?'#A9DFBF':'#E8ECEF'}">
+            <div style="font-size:11px;color:${r.viewedAt?'#1E8449':'#7F8C8D'};font-weight:600;margin-bottom:6px">✅ وقت استلام المركز</div>
+            ${r.viewedAt
+              ?`<div style="font-size:15px;font-weight:700;color:#1E8449">${r.viewedAt.split(' ')[1]}</div>
+                <div style="font-size:11px;color:#5D6D7E;margin-top:2px">${r.viewedAt.split(' ')[0]}</div>
+                <div style="font-size:11px;color:#7F8C8D;margin-top:3px">بواسطة: ${r.viewedBy}</div>`
+              :`<div style="font-size:13px;color:#95A5A6;margin-top:4px">لم يُستلم بعد</div>`}
+          </div>
+          <div style="background:${mins!==null?(mins>30?'#FADBD8':'#D5F5E3'):'#F4F6F9'};border-radius:8px;padding:12px;text-align:center;border:1px solid ${mins!==null?(mins>30?'#F1948A':'#A9DFBF'):'#E8ECEF'}">
+            <div style="font-size:11px;color:${mins!==null?(mins>30?'#C0392B':'#1E8449'):'#7F8C8D'};font-weight:600;margin-bottom:6px">🕐 مدة الاستجابة</div>
+            ${mins!==null
+              ?`<div style="font-size:20px;font-weight:700;color:${mins>30?'#C0392B':'#1E8449'}">${mins}</div>
+                <div style="font-size:11px;color:#5D6D7E">دقيقة ${mins>30?'⚠️ متأخر':'✅ في الوقت'}</div>`
+              :`<div style="font-size:13px;color:#95A5A6;margin-top:4px">—</div>`}
+          </div>
+        </div>
+      </div>`:''}
+
       ${canAck?`<div style="margin-top:22px;text-align:center">
         <button class="btn btn-success" id="btn-ack" style="padding:12px 32px;font-size:14px">✅ تم الاطلاع على البلاغ</button>
         <div style="font-size:11px;color:#7F8C8D;margin-top:8px">سيتم تسجيل اسمك والتوقيت تلقائياً</div>
+      </div>`:''}
+
+      ${u.role==='admin'?`
+      <div style="margin-top:20px;border-top:1px solid #E8ECEF;padding-top:16px">
+        <button class="btn btn-sm" id="btn-delete-report" style="background:#FDF2F2;color:#C0392B;border:1px solid #F1948A;width:100%">
+          🗑 حذف هذا البلاغ نهائياً
+        </button>
       </div>`:''}
     </div>
   </div></div>`;
@@ -1023,6 +1079,9 @@ function bindEvents(){
     if(e.target.id==='modal-overlay'){S.selectedReport=null;render();}
   });
   document.getElementById('btn-ack')?.addEventListener('click',acknowledgeReport);
+  document.getElementById('btn-delete-report')?.addEventListener('click',()=>{
+    if(S.selectedReport) confirmDeleteReport(S.selectedReport.id,true);
+  });
   // User management
   document.getElementById('btn-add-user')?.addEventListener('click',()=>{S.userModal='add';S.userForm={};S.userFormErr='';render();});
   document.getElementById('umodal-close')?.addEventListener('click',()=>{S.userModal=null;S.userForm={};render();});
@@ -1197,6 +1256,20 @@ function confirmDeleteEntity(){
   addLog(`حذف ${isHosp?'مستشفى':'مركز'}`,`تم حذف: ${item.name}`);
   saveData();toast('تم الحذف بنجاح');
   S.entityModal=null;render();
+}
+
+// ===================== REPORT DELETE =====================
+function confirmDeleteReport(id, fromModal=false){
+  if(!confirm('هل أنت متأكد من حذف هذا البلاغ نهائياً؟ لا يمكن التراجع.')) return;
+  const idx=DB.reports.findIndex(r=>r.id===id);
+  if(idx===-1) return;
+  const r=DB.reports[idx];
+  DB.reports.splice(idx,1);
+  addLog('حذف بلاغ',`حُذف البلاغ ${r.reportNo} للمريض ${r.patientName}`);
+  saveData();
+  toast('🗑 تم حذف البلاغ بنجاح');
+  if(fromModal) S.selectedReport=null;
+  render();
 }
 
 // ===================== INIT =====================
