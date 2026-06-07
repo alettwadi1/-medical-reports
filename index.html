@@ -232,6 +232,7 @@ let S = {
   filterStatus:'all',showNotif:false,
   loginErr:'',successMsg:'',reportForm:{},
   userModal:null,userForm:{},userFormErr:'',
+  entityModal:null,entityForm:{},entityFormErr:'',
 };
 
 // ===================== HELPERS =====================
@@ -281,12 +282,12 @@ function addLog(action,details){
   DB.auditLogs.unshift({id:DB.auditLogs.length+1,action,userName:S.user.name,userRole:S.user.role,details,ts:nowDT()});
 }
 function saveData(){
-  try{localStorage.setItem('medReports',JSON.stringify({reports:DB.reports,nextId:DB.nextId,nextNum:DB.nextNum,auditLogs:DB.auditLogs,users:DB.users}));}catch(e){}
+  try{localStorage.setItem('medReports',JSON.stringify({reports:DB.reports,nextId:DB.nextId,nextNum:DB.nextNum,auditLogs:DB.auditLogs,users:DB.users,hospitals:DB.hospitals,centers:DB.centers}));}catch(e){}
 }
 function loadData(){
   try{
     const d=localStorage.getItem('medReports');
-    if(d){const p=JSON.parse(d);DB.reports=p.reports;DB.nextId=p.nextId;DB.nextNum=p.nextNum;DB.auditLogs=p.auditLogs||[];if(p.users&&p.users.length>0)DB.users=p.users;}
+    if(d){const p=JSON.parse(d);DB.reports=p.reports;DB.nextId=p.nextId;DB.nextNum=p.nextNum;DB.auditLogs=p.auditLogs||[];if(p.users&&p.users.length>0)DB.users=p.users;if(p.hospitals&&p.hospitals.length>0)DB.hospitals=p.hospitals;if(p.centers&&p.centers.length>0)DB.centers=p.centers;}
   }catch(e){}
 }
 
@@ -346,7 +347,7 @@ function renderApp(){
     {id:'new-report',icon:'➕',label:'إنشاء بلاغ'},
     {id:'reports',icon:'📋',label:'البلاغات',count:nc},
     {id:'stats',icon:'📈',label:'التقارير'},
-    ...(u.role==='admin'?[{id:'audit',icon:'🔍',label:'سجل التدقيق'},{id:'users',icon:'👥',label:'المستخدمون'}]:[]),
+    ...(u.role==='admin'?[{id:'hospitals',icon:'🏥',label:'المستشفيات'},{id:'centers',icon:'🏨',label:'المراكز الصحية'},{id:'users',icon:'👥',label:'المستخدمون'},{id:'audit',icon:'🔍',label:'سجل التدقيق'}]:[]),
   ];
 
   return `
@@ -374,7 +375,8 @@ function renderApp(){
     <div class="main">${renderView()}</div>
   </div>
   ${renderModal()}
-  ${renderUserModal()}`;
+  ${renderUserModal()}
+  ${renderEntityModal()}`;
 }
 
 function renderNotifPanel(){
@@ -402,6 +404,8 @@ function renderView(){
     stats:renderStats,
     audit:renderAudit,
     users:renderUsers,
+    hospitals:renderHospitals,
+    centers:renderCenters,
     'center-inbox':()=>renderCenterReports('sent'),
     'center-done':()=>renderCenterReports('received'),
   };
@@ -763,6 +767,155 @@ function renderUserModal(){
   </div></div>`;
 }
 
+
+// HOSPITALS PAGE
+function renderHospitals(){
+  return `
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><h2>إدارة المستشفيات</h2><p>${DB.hospitals.length} مستشفى مسجلة في النظام</p></div>
+    <button class="btn btn-primary btn-sm" id="btn-add-hosp">➕ إضافة مستشفى</button>
+  </div>
+  ${DB.hospitals.map(h=>{
+    const hospCenters=DB.centers.filter(c=>c.hospitalId===h.id);
+    const hospUsers=DB.users.filter(u=>u.hospitalId===h.id);
+    const hospReports=DB.reports.filter(r=>r.hospitalId===h.id);
+    return `<div class="user-card" style="align-items:flex-start;flex-wrap:wrap;gap:10px">
+      <div class="user-avatar" style="background:#D6EAF8;color:#1A5276;font-size:20px;width:48px;height:48px">🏥</div>
+      <div class="user-info">
+        <div class="user-name" style="font-size:15px">${h.name}</div>
+        <div class="user-meta" style="margin-top:4px;display:flex;gap:10px;flex-wrap:wrap">
+          <span style="background:#EBF5FB;color:#1A5276;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">🏨 ${hospCenters.length} مركز صحي</span>
+          <span style="background:#EBF5FB;color:#1A5276;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">👥 ${hospUsers.length} مستخدم</span>
+          <span style="background:#D5F5E3;color:#1E8449;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">📋 ${hospReports.length} بلاغ</span>
+        </div>
+        ${hospCenters.length>0?`<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          ${hospCenters.map(c=>`<span style="background:#F0F3F4;color:#5D6D7E;padding:2px 10px;border-radius:6px;font-size:11px">📍 ${c.name}</span>`).join('')}
+        </div>`:''}
+      </div>
+      <div class="user-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openEditEntity('hosp',${h.id})">✏️ تعديل</button>
+        <button class="btn btn-sm" style="background:#FDF2F2;color:#C0392B;border:1px solid #F1948A" onclick="openDeleteEntity('hosp',${h.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+// CENTERS PAGE
+function renderCenters(){
+  const groupByHosp={};
+  DB.hospitals.forEach(h=>{ groupByHosp[h.id]={hosp:h,centers:[]}; });
+  DB.centers.forEach(c=>{ if(groupByHosp[c.hospitalId]) groupByHosp[c.hospitalId].centers.push(c); });
+  return `
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><h2>إدارة المراكز الصحية</h2><p>${DB.centers.length} مركز صحي مسجل</p></div>
+    <button class="btn btn-primary btn-sm" id="btn-add-center">➕ إضافة مركز</button>
+  </div>
+  ${Object.values(groupByHosp).map(g=>`
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E8ECEF">
+      <span style="font-size:20px">🏥</span>
+      <div>
+        <div style="font-weight:700;font-size:14px;color:#1A5276">${g.hosp.name}</div>
+        <div style="font-size:12px;color:#7F8C8D">${g.centers.length} مركز صحي تابع</div>
+      </div>
+    </div>
+    ${g.centers.length===0?`<div style="color:#95A5A6;font-size:13px;text-align:center;padding:12px">لا توجد مراكز مضافة لهذه المستشفى</div>`:
+    g.centers.map(c=>{
+      const cUsers=DB.users.filter(u=>u.centerId===c.id);
+      const cReports=DB.reports.filter(r=>r.centerId===c.id);
+      const pending=cReports.filter(r=>r.status==='sent').length;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:#FAFBFC;margin-bottom:8px;border:1px solid #E8ECEF">
+        <span style="font-size:18px;flex-shrink:0">🏨</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:#2C3E50">${c.name}</div>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:11px;color:#5D6D7E">👥 ${cUsers.length} موظف</span>
+            <span style="font-size:11px;color:#5D6D7E">📋 ${cReports.length} بلاغ إجمالي</span>
+            ${pending>0?`<span style="font-size:11px;color:#E67E22;font-weight:700">⏳ ${pending} معلق</span>`:'<span style="font-size:11px;color:#1E8449">✅ لا يوجد معلق</span>'}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-secondary btn-sm" onclick="openEditEntity('center',${c.id})">✏️ تعديل</button>
+          <button class="btn btn-sm" style="background:#FDF2F2;color:#C0392B;border:1px solid #F1948A" onclick="openDeleteEntity('center',${c.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`).join('')}`;
+}
+
+// ENTITY MODAL (hospitals & centers)
+function renderEntityModal(){
+  const m=S.entityModal;
+  if(!m) return '<div class="modal-overlay" id="entity-modal-overlay"></div>';
+
+  const isHosp=m.type==='hosp';
+  const isEdit=!!m.editId;
+
+  // DELETE CONFIRM
+  if(m.deleteId){
+    const item=isHosp?DB.hospitals.find(x=>x.id===m.deleteId):DB.centers.find(x=>x.id===m.deleteId);
+    const blockMsg=isHosp
+      ? (DB.centers.some(c=>c.hospitalId===m.deleteId)||DB.reports.some(r=>r.hospitalId===m.deleteId))
+          ? 'لا يمكن الحذف: يوجد مراكز أو بلاغات مرتبطة بهذه المستشفى' : null
+      : DB.reports.some(r=>r.centerId===m.deleteId)
+          ? 'لا يمكن الحذف: يوجد بلاغات مرتبطة بهذا المركز' : null;
+    return `<div class="modal-overlay open" id="entity-modal-overlay">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div style="font-size:15px;font-weight:700">🗑 حذف ${isHosp?'مستشفى':'مركز صحي'}</div>
+        <button class="modal-close" id="emodal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        ${blockMsg
+          ? `<div class="alert alert-warning">⚠️ ${blockMsg}</div>
+             <div style="text-align:center;margin-top:12px"><button class="btn btn-secondary" id="emodal-close2">إغلاق</button></div>`
+          : `<div class="delete-confirm">
+              <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+              <div style="font-size:14px;font-weight:700;margin-bottom:6px">هل أنت متأكد من حذف هذا ${isHosp?'المستشفى':'المركز'}؟</div>
+              <div style="font-size:13px;color:#C0392B;font-weight:600">${item?.name}</div>
+              <div style="font-size:12px;color:#7F8C8D;margin-top:6px">لا يمكن التراجع عن هذه العملية</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:center">
+              <button class="btn btn-secondary" id="emodal-close2">إلغاء</button>
+              <button class="btn btn-danger" id="btn-confirm-entity-delete">تأكيد الحذف</button>
+            </div>`}
+      </div>
+    </div></div>`;
+  }
+
+  // ADD / EDIT FORM
+  const f=S.entityForm;
+  const editItem=isEdit?(isHosp?DB.hospitals.find(x=>x.id===m.editId):DB.centers.find(x=>x.id===m.editId)):null;
+
+  return `<div class="modal-overlay open" id="entity-modal-overlay">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div style="font-size:15px;font-weight:700">${isEdit?'✏️ تعديل':'➕ إضافة'} ${isHosp?'مستشفى':'مركز صحي'}</div>
+      <button class="modal-close" id="emodal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      ${S.entityFormErr?`<div class="alert alert-warning">⚠️ ${S.entityFormErr}</div>`:''}
+      <div class="form-grid">
+        <div class="form-group full">
+          <label class="form-label">اسم ${isHosp?'المستشفى':'المركز الصحي'} <span class="req">*</span></label>
+          <input class="form-control" id="ef-name" value="${editItem?.name||f.name||''}" placeholder="${isHosp?'مثال: مستشفى الملك فهد العام':'مثال: مركز صحي الروضة'}">
+        </div>
+        ${!isHosp?`<div class="form-group full">
+          <label class="form-label">المستشفى التابع لها <span class="req">*</span></label>
+          <select class="form-control" id="ef-hosp">
+            <option value="">-- اختر المستشفى --</option>
+            ${DB.hospitals.map(h=>`<option value="${h.id}" ${h.id==(f.hospitalId||editItem?.hospitalId)?'selected':''}>${h.name}</option>`).join('')}
+          </select>
+        </div>`:''}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+        <button class="btn btn-secondary" id="emodal-close2">إلغاء</button>
+        <button class="btn btn-primary" id="btn-save-entity">${isEdit?'💾 حفظ التعديلات':'➕ إضافة'}</button>
+      </div>
+    </div>
+  </div></div>`;
+}
+
 // MODAL
 function renderModal(){
   if(!S.selectedReport) return '<div class="modal-overlay" id="modal-overlay"></div>';
@@ -870,6 +1023,14 @@ function bindEvents(){
   document.getElementById('user-modal-overlay')?.addEventListener('click',e=>{if(e.target.id==='user-modal-overlay'){S.userModal=null;S.userForm={};render();}});
   document.getElementById('btn-save-user')?.addEventListener('click',saveUser);
   document.getElementById('btn-confirm-delete')?.addEventListener('click',confirmDeleteUser);
+  // Hospitals & Centers management
+  document.getElementById('btn-add-hosp')?.addEventListener('click',()=>{S.entityModal={type:'hosp'};S.entityForm={};S.entityFormErr='';render();});
+  document.getElementById('btn-add-center')?.addEventListener('click',()=>{S.entityModal={type:'center'};S.entityForm={};S.entityFormErr='';render();});
+  document.getElementById('emodal-close')?.addEventListener('click',()=>{S.entityModal=null;S.entityForm={};render();});
+  document.getElementById('emodal-close2')?.addEventListener('click',()=>{S.entityModal=null;S.entityForm={};render();});
+  document.getElementById('entity-modal-overlay')?.addEventListener('click',e=>{if(e.target.id==='entity-modal-overlay'){S.entityModal=null;S.entityForm={};render();}});
+  document.getElementById('btn-save-entity')?.addEventListener('click',saveEntity);
+  document.getElementById('btn-confirm-entity-delete')?.addEventListener('click',confirmDeleteEntity);
 }
 
 function doLogin(){
@@ -976,6 +1137,59 @@ function confirmDeleteUser(){
   addLog('حذف مستخدم',`تم حذف المستخدم: ${u.name} (${u.username})`);
   saveData();toast('تم حذف المستخدم');
   S.userModal=null;render();
+}
+
+// ===================== ENTITY MANAGEMENT FUNCTIONS =====================
+function openEditEntity(type,id){
+  S.entityModal={type,editId:id};
+  const item=type==='hosp'?DB.hospitals.find(x=>x.id===id):DB.centers.find(x=>x.id===id);
+  S.entityForm=item?{name:item.name,hospitalId:item.hospitalId||null}:{};
+  S.entityFormErr='';render();
+}
+function openDeleteEntity(type,id){
+  S.entityModal={type,deleteId:id};S.entityFormErr='';render();
+}
+function saveEntity(){
+  const m=S.entityModal;
+  const isHosp=m.type==='hosp';
+  const isEdit=!!m.editId;
+  const name=document.getElementById('ef-name')?.value.trim();
+  const hospId=isHosp?null:parseInt(document.getElementById('ef-hosp')?.value||0);
+  if(!name){S.entityFormErr='يرجى إدخال الاسم';render();return;}
+  if(!isHosp&&!hospId){S.entityFormErr='يرجى تحديد المستشفى';render();return;}
+  // duplicate check
+  const list=isHosp?DB.hospitals:DB.centers;
+  const dup=list.find(x=>x.name===name&&x.id!==(isEdit?m.editId:0));
+  if(dup){S.entityFormErr='هذا الاسم موجود مسبقاً';render();return;}
+  if(isEdit){
+    const item=list.find(x=>x.id===m.editId);
+    if(!item)return;
+    item.name=name;
+    if(!isHosp) item.hospitalId=hospId;
+    addLog(`تعديل ${isHosp?'مستشفى':'مركز'}`,`تم تعديل: ${name}`);
+    toast('✅ تم حفظ التعديلات');
+  } else {
+    const newId=Math.max(0,...list.map(x=>x.id))+1;
+    if(isHosp){
+      DB.hospitals.push({id:newId,name});
+    } else {
+      DB.centers.push({id:newId,hospitalId:hospId,name});
+    }
+    addLog(`إضافة ${isHosp?'مستشفى':'مركز'}`,`تمت الإضافة: ${name}`);
+    toast(`✅ تمت إضافة ${isHosp?'المستشفى':'المركز'} بنجاح`);
+  }
+  saveData();S.entityModal=null;S.entityForm={};render();
+}
+function confirmDeleteEntity(){
+  const m=S.entityModal;
+  const isHosp=m.type==='hosp';
+  const list=isHosp?DB.hospitals:DB.centers;
+  const item=list.find(x=>x.id===m.deleteId);
+  if(!item)return;
+  list.splice(list.indexOf(item),1);
+  addLog(`حذف ${isHosp?'مستشفى':'مركز'}`,`تم حذف: ${item.name}`);
+  saveData();toast('تم الحذف بنجاح');
+  S.entityModal=null;render();
 }
 
 // ===================== INIT =====================
