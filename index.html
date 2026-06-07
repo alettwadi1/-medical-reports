@@ -306,11 +306,11 @@ function renderLogin(){
     ${S.loginErr?`<div class="login-err">⚠️ ${S.loginErr}</div>`:''}
     <div style="margin-bottom:14px">
       <label class="form-label" style="display:block;margin-bottom:7px;color:#5D6D7E">اسم المستخدم</label>
-      <input class="form-control" id="inp-user" type="text" placeholder="أدخل اسم المستخدم" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="username" spellcheck="false">
+      <input class="form-control" id="inp-user" type="text" placeholder="أدخل اسم المستخدم" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="username" spellcheck="false" oninput="filterEng(this)">
     </div>
     <div style="margin-bottom:18px">
       <label class="form-label" style="display:block;margin-bottom:7px;color:#5D6D7E">كلمة المرور</label>
-      <input class="form-control" id="inp-pass" type="password" placeholder="أدخل كلمة المرور" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="current-password">
+      <input class="form-control" id="inp-pass" type="password" placeholder="أدخل كلمة المرور" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="current-password" oninput="filterEng(this)">
     </div>
     <button class="login-btn" id="btn-login">🔐 تسجيل الدخول</button>
     <div style="margin-top:28px;text-align:center;padding-top:20px;border-top:1px solid #E8ECEF">
@@ -1083,11 +1083,30 @@ function bindEvents(){
   document.getElementById('btn-confirm-entity-delete')?.addEventListener('click',confirmDeleteEntity);
 }
 
+function filterEng(el){
+  // يسمح فقط بالأحرف الإنجليزية والأرقام والرموز الشائعة
+  const cur=el.value;
+  const filtered=cur.replace(/[^a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~ ]/g,'');
+  if(filtered!==cur){
+    const pos=el.selectionStart-(cur.length-filtered.length);
+    el.value=filtered;
+    el.setSelectionRange(pos,pos);
+  }
+}
+
 function doLogin(){
-  const u=document.getElementById('inp-user')?.value.trim();
-  const p=document.getElementById('inp-pass')?.value.trim();
-  const user=DB.users.find(x=>x.username===u&&x.password===p);
-  if(!user){S.loginErr='اسم المستخدم أو كلمة المرور غير صحيحة';render();return;}
+  // تنظيف شامل: إزالة مسافات + تحويل إلى أحرف صغيرة للمقارنة
+  const clean=v=>(v||'').replace(/[\u200B-\u200D\uFEFF\s]+/g,'').toLowerCase();
+  const rawU=document.getElementById('inp-user')?.value||'';
+  const rawP=document.getElementById('inp-pass')?.value||'';
+  const u=clean(rawU);
+  const p=rawP.trim();
+  // مقارنة اسم المستخدم بشكل غير حساس لحالة الأحرف
+  const user=DB.users.find(x=>x.username.toLowerCase()===u&&x.password===p);
+  if(!user){
+    S.loginErr='اسم المستخدم أو كلمة المرور غير صحيحة';
+    render();return;
+  }
   S.user=user;S.view=user.role==='center_staff'?'center-inbox':'dashboard';S.loginErr='';
   addLog('تسجيل دخول',`دخل ${user.name} (${roleLabel(user.role)}) إلى النظام`);
   saveData();render();
