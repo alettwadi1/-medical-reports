@@ -306,11 +306,11 @@ function renderLogin(){
     ${S.loginErr?`<div class="login-err">⚠️ ${S.loginErr}</div>`:''}
     <div style="margin-bottom:14px">
       <label class="form-label" style="display:block;margin-bottom:7px;color:#5D6D7E">اسم المستخدم</label>
-      <input class="form-control" id="inp-user" type="text" placeholder="أدخل اسم المستخدم" style="width:100%">
+      <input class="form-control" id="inp-user" type="text" placeholder="أدخل اسم المستخدم" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="username" spellcheck="false">
     </div>
     <div style="margin-bottom:18px">
       <label class="form-label" style="display:block;margin-bottom:7px;color:#5D6D7E">كلمة المرور</label>
-      <input class="form-control" id="inp-pass" type="password" placeholder="أدخل كلمة المرور" style="width:100%">
+      <input class="form-control" id="inp-pass" type="password" placeholder="أدخل كلمة المرور" style="width:100%" autocapitalize="none" autocorrect="off" autocomplete="current-password">
     </div>
     <button class="login-btn" id="btn-login">🔐 تسجيل الدخول</button>
     <div style="margin-top:28px;text-align:center;padding-top:20px;border-top:1px solid #E8ECEF">
