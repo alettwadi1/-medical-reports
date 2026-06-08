@@ -1064,7 +1064,7 @@ const pad=(n)=>String(n).padStart(2,'0');
 const nowDate=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;};
 const nowTime=()=>{const d=new Date();return `${pad(d.getHours())}:${pad(d.getMinutes())}`;};
 const nowDT=()=>nowDate()+' '+nowTime();
-const genNo=()=>'CR-2024-'+String(DB.nextNum).padStart(4,'0');
+const genNo=()=>'CR-'+new Date().getFullYear()+'-'+String(DB.nextNum).padStart(4,'0');
 const sevLabel=(s)=>({critical:t('critical'),high:t('high'),medium:t('medium'),low:t('low')}[s]||s);
 const sevBadge=(s)=>`<span class="badge badge-${s}">${sevLabel(s)}</span>`;
 const stBadge=(s)=>({sent:`<span class="badge badge-sent">${t('sent')}</span>`,received:`<span class="badge badge-received">${t('receivedStatus')}</span>`}[s]||s);
@@ -1121,8 +1121,13 @@ async function loadData(){
     DB.users=users.map(mapUser);
     DB.reports=reports.map(mapReport);
     DB.auditLogs=logs.map(mapLog);
-    const nums=DB.reports.map(r=>parseInt(r.reportNo.split('-')[2]||0)).filter(n=>!isNaN(n));
-    DB.nextNum=nums.length?Math.max(...nums)+1:1;
+    const currYear=new Date().getFullYear();
+    // فلتر البلاغات بالسنة الحالية فقط للحصول على آخر رقم
+    const numsThisYear=DB.reports
+      .filter(r=>r.reportNo&&r.reportNo.startsWith('CR-'+currYear+'-'))
+      .map(r=>parseInt(r.reportNo.split('-')[2]||0))
+      .filter(n=>!isNaN(n));
+    DB.nextNum=numsThisYear.length?Math.max(...numsThisYear)+1:1;
     DB.nextId=DB.reports.length?Math.max(...DB.reports.map(r=>r.id))+1:1;
   }catch(e){
     console.error('loadData error:',e);
