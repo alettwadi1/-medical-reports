@@ -152,11 +152,19 @@ body { font-family: var(--font); background: var(--bg); color: var(--text-primar
 .login-btn:hover { opacity: .92; transform: translateY(-1px); }
 .login-btn:active { transform: translateY(0); }
 .login-logo-wrap {
-  margin-top: 28px; padding-top: 24px;
+  margin-top: 24px; padding-top: 20px;
   border-top: 1px solid var(--border);
   text-align: center;
 }
-.login-logo-wrap img { width: 180px; height: 180px; object-fit: contain; }
+.login-logo-wrap img { width: 280px; height: 280px; object-fit: contain; display: block; margin: 0 auto 12px; }
+.login-version {
+  font-family: 'Playfair Display', serif;
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 1.5px;
+  background: linear-gradient(135deg, #1E3A5F, #2563EB, #0891B2);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* ============ APP SHELL ============ */
 .app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -635,6 +643,21 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   font-size: 9px; font-weight: 800;
 }
 
+/* ── LANG TOGGLE ── */
+.lang-toggle {
+  display:flex; align-items:center;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px; overflow: hidden;
+  cursor: pointer; flex-shrink: 0;
+}
+.lang-btn {
+  padding: 5px 12px; font-size: 12px; font-weight: 700;
+  color: rgba(255,255,255,0.55); transition: all .2s;
+  font-family: var(--font); background: none; border: none; cursor: pointer;
+}
+.lang-btn.active { background: rgba(255,255,255,0.2); color: #fff; border-radius: 20px; }
+
 /* ============ RESPONSIVE ============ */
 @media(max-width:1024px){
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -709,7 +732,7 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   /* login */
   .login-card { padding: 30px 22px 26px; }
   .login-brand h1 { font-size: 17px; }
-  .login-logo-wrap img { width: 140px; height: 140px; }
+  .login-logo-wrap img { width: 200px; height: 200px; }
   /* user card */
   .user-card { flex-wrap: wrap; }
   .user-actions { width: 100%; justify-content: flex-end; }
@@ -769,6 +792,244 @@ function mapUser(r){return {id:r.id,username:r.username,password:r.password,name
 function mapReport(r){return {id:r.id,reportNo:r.report_no,patientName:r.patient_name,fileNo:r.file_no,idNo:r.id_no||'',testName:r.test_name,criticalResult:r.critical_result,severity:r.severity,notes:r.notes||'',hospitalId:r.hospital_id,centerId:r.center_id,reporterName:r.reporter_name,labTech:r.lab_tech,date:r.date,time:r.time,status:r.status,viewedAt:r.viewed_at,viewedBy:r.viewed_by};}
 function mapLog(r){return {id:r.id,action:r.action,userName:r.user_name,userRole:r.user_role,details:r.details,ts:r.ts};}
 
+// ===================== TRANSLATIONS =====================
+const T = {
+  ar: {
+    // Login
+    appName:'Critical',appSub:'منظومة المستشفيات والمراكز الصحية',
+    username:'اسم المستخدم',password:'كلمة المرور',
+    enterUsername:'أدخل اسم المستخدم',enterPassword:'أدخل كلمة المرور',
+    loginBtn:'تسجيل الدخول',loginErr:'اسم المستخدم أو كلمة المرور غير صحيحة',
+    // Nav
+    dashboard:'لوحة التحكم',newReport:'إنشاء بلاغ',reports:'البلاغات',
+    stats:'التقارير',audit:'سجل التدقيق',users:'المستخدمون',
+    hospitals:'المستشفيات',centers:'المراكز الصحية',
+    inbox:'البلاغات الواردة',received:'المستلمة',logout:'خروج',
+    // Dashboard
+    totalReports:'إجمالي البلاغات',pending:'بلاغات معلقة',
+    receivedCount:'تم الاستلام',avgResponse:'متوسط الاستجابة (د)',
+    allCases:'جميع الحالات',notViewed:'لم يتم الاطلاع',confirmed:'مؤكدة',
+    latestReports:'أحدث البلاغات',last6:'آخر 6 بلاغات',
+    severityDist:'توزيع مستويات الخطورة',addReport:'➕ بلاغ جديد',
+    // Table headers
+    reportNo:'رقم البلاغ',patient:'المريض',fileNo:'رقم الملف',
+    testName:'التحليل',severity:'الخطورة',hospital:'المستشفى',
+    center:'المركز',status:'الحالة',sendTime:'وقت الإرسال',
+    receiveTime:'وقت الاستلام',duration:'مدة الاستجابة',details:'تفاصيل',
+    delete:'حذف',
+    // Status/Severity
+    sent:'مرسل',receivedStatus:'تم الاستلام',
+    critical:'حرج جداً',high:'عالي',medium:'متوسط',low:'منخفض',
+    // New Report
+    newReportTitle:'إنشاء بلاغ طبي حرج',
+    newReportSub:'يُرجى ملء جميع الحقول المطلوبة بدقة وعناية',
+    autoReportNo:'رقم البلاغ (تلقائي)',autoHospital:'اسم المستشفى (تلقائي)',
+    autoReporter:'الموظف المبلغ (تلقائي)',autoDate:'تاريخ البلاغ (تلقائي)',
+    patientName:'اسم المريض',patientNamePh:'الاسم الكامل',
+    fileNoPh:'MF-XXXXX',idNo:'رقم الهوية',idNoPh:'10 أرقام',optional:'اختياري',
+    labTech:'اسم موظف المختبر',labTechPh:'د. اسم الموظف',
+    testNameLabel:'اسم التحليل',testNamePh:'مثال: تعداد الدم الشامل - WBC',
+    criticalResult:'نتيجة التحليل الحرجة',criticalResultPh:'القيمة الحرجة والوحدة والمدى الطبيعي',
+    severityLevel:'مستوى الخطورة',selectSeverity:'-- اختر مستوى الخطورة --',
+    targetCenter:'المركز الصحي المستهدف',selectCenter:'-- اختر المركز --',
+    notes:'ملاحظات إضافية',notesPh:'أي معلومات إضافية مهمة',
+    clearBtn:'🗑 مسح الحقول',sendBtn:'📤 إرسال البلاغ',
+    required:'مطلوب',fillAll:'⚠️ يرجى ملء جميع الحقول المطلوبة',
+    // Reports page
+    reportsTitle:'سجل البلاغات',all:'الكل',allPending:'معلق',allReceived:'مستلم',
+    noReports:'لا توجد بلاغات',
+    // Stats
+    statsTitle:'التقارير والإحصائيات',
+    pctReceived:'نسبة الاستلام',delayed:'بلاغات متأخرة (+30د)',
+    byCenter:'البلاغات حسب المركز الصحي',
+    delayedTitle:'⚠️ البلاغات المتأخرة (أكثر من 30 دقيقة)',
+    noDelayed:'لا توجد بلاغات متأخرة',
+    waitDuration:'مدة الانتظار',minutes:'دقيقة',
+    // Modal detail
+    reportDetail:'تفاصيل البلاغ الطبي الحرج',
+    criticalResultLabel:'🧪 نتيجة التحليل الحرجة',
+    patientData:'🧑‍⚕️ بيانات المريض',sendData:'🏥 بيانات الإرسال',
+    receiveData:'✅ بيانات الاستلام',notesLabel:'📝 ملاحظات',
+    notSpecified:'غير محدد',
+    viewedBy:'اطلع عليه',viewDate:'تاريخ الاطلاع',viewTime:'وقت الاطلاع',
+    responseTime:'مدة الاستجابة',inTime:'✅ في الوقت',delayed2:'⚠️ متأخر',
+    sendTimeLabel:'⏱ وقت إرسال البلاغ',receiveTimeLabel:'✅ وقت استلام المركز',
+    responseDuration:'🕐 مدة الاستجابة',notReceived:'لم يُستلم بعد',
+    ackBtn:'✅ تم الاطلاع على البلاغ',ackSub:'سيتم تسجيل اسمك والتوقيت تلقائياً',
+    deleteReport:'🗑 حذف هذا البلاغ نهائياً',
+    notViewedYet:'هذا البلاغ لم يتم الاطلاع عليه بعد',
+    receivedBy:'تم الاستلام بواسطة',at:'في',
+    // Center inbox
+    inboxTitle:'📥 البلاغات الواردة',receivedTitle:'✅ البلاغات المستلمة',
+    newAlert:'● جديد',viewBtn:'عرض',
+    ackNow:'📖 اطلاع فوري',viewDetails:'عرض التفاصيل',
+    newAlertWarning:'⚠️ يوجد',newAlertWarning2:'بلاغ جديد يتطلب الاطلاع الفوري',
+    noInbox:'لا توجد بلاغات جديدة',noReceived:'لا توجد بلاغات مستلمة',
+    // Users
+    usersTitle:'إدارة المستخدمين',addUser:'➕ إضافة مستخدم',
+    editUser:'✏️ تعديل',deleteUser:'🗑',
+    addUserTitle:'➕ إضافة مستخدم جديد',editUserTitle:'✏️ تعديل بيانات مستخدم',
+    fullName:'الاسم الكامل',fullNamePh:'الاسم الثلاثي',
+    usernameLbl:'اسم المستخدم',usernameEngPh:'بالإنجليزية',
+    newPassword:'كلمة مرور جديدة',keepEmpty:'اتركها فارغة للإبقاء',
+    enterPassword2:'أدخل كلمة المرور',
+    role:'الصلاحية',selectRole:'-- اختر --',
+    roleAdmin:'مدير النظام',roleHospital:'موظف مستشفى',roleCenter:'موظف مركز صحي',
+    hospitalLbl:'المستشفى',centerLbl:'المركز الصحي',selectHospital:'-- اختر المستشفى --',
+    saveChanges:'💾 حفظ التعديلات',addBtn:'➕ إضافة',cancelBtn:'إلغاء',
+    confirmDelete:'هل أنت متأكد من حذف هذا المستخدم؟',
+    cannotUndo:'لا يمكن التراجع عن هذه العملية',
+    confirmDeleteBtn:'تأكيد الحذف',
+    fillRequired:'يرجى ملء جميع الحقول المطلوبة',
+    passwordRequired:'كلمة المرور مطلوبة للمستخدم الجديد',
+    centerRequired:'يجب تحديد المركز الصحي لموظف المركز',
+    usernameExists:'اسم المستخدم مستخدم مسبقاً، اختر اسماً آخر',
+    savedSuccess:'✅ تم حفظ التعديلات بنجاح',addedSuccess:'✅ تم إضافة المستخدم بنجاح',
+    deletedUser:'تم حذف المستخدم',
+    // Hospitals & Centers
+    hospitalsTitle:'إدارة المستشفيات',addHospital:'➕ إضافة مستشفى',
+    centersTitle:'إدارة المراكز الصحية',addCenter:'➕ إضافة مركز',
+    hospitalName:'اسم المستشفى',centerName:'اسم المركز الصحي',
+    hospitalNamePh:'مثال: مستشفى الملك فهد العام',
+    centerNamePh:'مثال: مركز صحي الروضة',
+    affiliatedHospital:'المستشفى التابع لها',
+    nameExists:'هذا الاسم موجود مسبقاً',enterName:'يرجى إدخال الاسم',
+    selectHospitalRequired:'يرجى تحديد المستشفى',
+    deleteHospital:'حذف مستشفى',deleteCenter:'حذف مركز صحي',
+    cannotDeleteHospital:'لا يمكن الحذف: يوجد مراكز أو بلاغات مرتبطة بهذه المستشفى',
+    cannotDeleteCenter:'لا يمكن الحذف: يوجد بلاغات مرتبطة بهذا المركز',
+    // Audit
+    auditTitle:'سجل التدقيق',noLogs:'لا توجد سجلات بعد',
+    action:'العملية',userName:'المستخدم',userRole:'الصلاحية',auditDetails:'التفاصيل',datetime:'التاريخ والوقت',
+    // Notifications
+    notifTitle:'🔔 الإشعارات',noPending:'✅ لا توجد إشعارات جديدة',
+    newCritical:'🚨 بلاغ حرج جديد!',receivedAlert:'✅ تم استلام البلاغ!',
+    // General
+    close:'إغلاق',view:'عرض',save:'حفظ',edit:'تعديل',del:'حذف',
+    loading:'جاري تحميل النظام...',
+    version:'v1.00 · 2026',
+    dir:'rtl',lang:'ar',
+  },
+  en: {
+    // Login
+    appName:'Critical',appSub:'Hospital & Health Center Network',
+    username:'Username',password:'Password',
+    enterUsername:'Enter your username',enterPassword:'Enter your password',
+    loginBtn:'Sign In',loginErr:'Invalid username or password',
+    // Nav
+    dashboard:'Dashboard',newReport:'New Report',reports:'Reports',
+    stats:'Statistics',audit:'Audit Log',users:'Users',
+    hospitals:'Hospitals',centers:'Health Centers',
+    inbox:'Incoming Reports',received:'Received',logout:'Logout',
+    // Dashboard
+    totalReports:'Total Reports',pending:'Pending',
+    receivedCount:'Received',avgResponse:'Avg. Response (min)',
+    allCases:'All cases',notViewed:'Not acknowledged',confirmed:'Confirmed',
+    latestReports:'Latest Reports',last6:'Last 6 reports',
+    severityDist:'Severity Distribution',addReport:'➕ New Report',
+    // Table headers
+    reportNo:'Report No.',patient:'Patient',fileNo:'File No.',
+    testName:'Test',severity:'Severity',hospital:'Hospital',
+    center:'Center',status:'Status',sendTime:'Sent At',
+    receiveTime:'Received At',duration:'Response',details:'Details',
+    delete:'Delete',
+    // Status/Severity
+    sent:'Sent',receivedStatus:'Received',
+    critical:'Critical',high:'High',medium:'Medium',low:'Low',
+    // New Report
+    newReportTitle:'Create Critical Medical Report',
+    newReportSub:'Please fill all required fields carefully',
+    autoReportNo:'Report No. (auto)',autoHospital:'Hospital (auto)',
+    autoReporter:'Reporter (auto)',autoDate:'Date (auto)',
+    patientName:'Patient Name',patientNamePh:'Full name',
+    fileNoPh:'MF-XXXXX',idNo:'ID Number',idNoPh:'10 digits',optional:'optional',
+    labTech:'Lab Technician',labTechPh:'Dr. Name',
+    testNameLabel:'Test Name',testNamePh:'e.g. CBC - WBC',
+    criticalResult:'Critical Result',criticalResultPh:'Critical value, unit, and normal range',
+    severityLevel:'Severity Level',selectSeverity:'-- Select severity --',
+    targetCenter:'Target Health Center',selectCenter:'-- Select center --',
+    notes:'Additional Notes',notesPh:'Any additional important information',
+    clearBtn:'🗑 Clear',sendBtn:'📤 Send Report',
+    required:'required',fillAll:'⚠️ Please fill all required fields',
+    // Reports page
+    reportsTitle:'Reports Registry',all:'All',allPending:'Pending',allReceived:'Received',
+    noReports:'No reports found',
+    // Stats
+    statsTitle:'Reports & Statistics',
+    pctReceived:'Receipt Rate',delayed:'Delayed (+30min)',
+    byCenter:'Reports by Health Center',
+    delayedTitle:'⚠️ Delayed Reports (over 30 minutes)',
+    noDelayed:'No delayed reports',
+    waitDuration:'Wait Duration',minutes:'min',
+    // Modal detail
+    reportDetail:'Critical Medical Report Details',
+    criticalResultLabel:'🧪 Critical Result',
+    patientData:'🧑‍⚕️ Patient Information',sendData:'🏥 Sending Information',
+    receiveData:'✅ Receipt Information',notesLabel:'📝 Notes',
+    notSpecified:'Not specified',
+    viewedBy:'Acknowledged by',viewDate:'Date',viewTime:'Time',
+    responseTime:'Response Time',inTime:'✅ On time',delayed2:'⚠️ Delayed',
+    sendTimeLabel:'⏱ Report Sent',receiveTimeLabel:'✅ Center Received',
+    responseDuration:'🕐 Response Duration',notReceived:'Not received yet',
+    ackBtn:'✅ Acknowledge Report',ackSub:'Your name and timestamp will be recorded automatically',
+    deleteReport:'🗑 Delete This Report',
+    notViewedYet:'This report has not been acknowledged yet',
+    receivedBy:'Acknowledged by',at:'at',
+    // Center inbox
+    inboxTitle:'📥 Incoming Reports',receivedTitle:'✅ Received Reports',
+    newAlert:'● New',viewBtn:'View',
+    ackNow:'📖 Acknowledge',viewDetails:'View Details',
+    newAlertWarning:'⚠️',newAlertWarning2:'new report(s) require immediate attention',
+    noInbox:'No new reports',noReceived:'No received reports',
+    // Users
+    usersTitle:'User Management',addUser:'➕ Add User',
+    editUser:'✏️ Edit',deleteUser:'🗑',
+    addUserTitle:'➕ Add New User',editUserTitle:'✏️ Edit User',
+    fullName:'Full Name',fullNamePh:'Full name',
+    usernameLbl:'Username',usernameEngPh:'In English',
+    newPassword:'New Password',keepEmpty:'Leave empty to keep current',
+    enterPassword2:'Enter password',
+    role:'Role',selectRole:'-- Select --',
+    roleAdmin:'System Admin',roleHospital:'Hospital Staff',roleCenter:'Health Center Staff',
+    hospitalLbl:'Hospital',centerLbl:'Health Center',selectHospital:'-- Select hospital --',
+    saveChanges:'💾 Save Changes',addBtn:'➕ Add',cancelBtn:'Cancel',
+    confirmDelete:'Are you sure you want to delete this user?',
+    cannotUndo:'This action cannot be undone',
+    confirmDeleteBtn:'Confirm Delete',
+    fillRequired:'Please fill all required fields',
+    passwordRequired:'Password is required for new user',
+    centerRequired:'Please select a health center for center staff',
+    usernameExists:'Username already exists, please choose another',
+    savedSuccess:'✅ Changes saved successfully',addedSuccess:'✅ User added successfully',
+    deletedUser:'User deleted',
+    // Hospitals & Centers
+    hospitalsTitle:'Hospital Management',addHospital:'➕ Add Hospital',
+    centersTitle:'Health Center Management',addCenter:'➕ Add Center',
+    hospitalName:'Hospital Name',centerName:'Health Center Name',
+    hospitalNamePh:'e.g. King Fahad General Hospital',
+    centerNamePh:'e.g. Al-Rawdah Health Center',
+    affiliatedHospital:'Affiliated Hospital',
+    nameExists:'This name already exists',enterName:'Please enter a name',
+    selectHospitalRequired:'Please select a hospital',
+    deleteHospital:'Delete Hospital',deleteCenter:'Delete Health Center',
+    cannotDeleteHospital:'Cannot delete: hospital has associated centers or reports',
+    cannotDeleteCenter:'Cannot delete: center has associated reports',
+    // Audit
+    auditTitle:'Audit Log',noLogs:'No records yet',
+    action:'Action',userName:'User',userRole:'Role',auditDetails:'Details',datetime:'Date & Time',
+    // Notifications
+    notifTitle:'🔔 Notifications',noPending:'✅ No new notifications',
+    newCritical:'🚨 New Critical Report!',receivedAlert:'✅ Report Acknowledged!',
+    // General
+    close:'Close',view:'View',save:'Save',edit:'Edit',del:'Delete',
+    loading:'Loading system...',
+    version:'v1.00 · 2026',
+    dir:'ltr',lang:'en',
+  }
+};
+
+function t(key){ return (T[S.lang]||T.ar)[key] || T.ar[key] || key; }
+
 const DB = {
   hospitals:[],
   centers:[],
@@ -793,6 +1054,7 @@ let S = {
   loginErr:'',successMsg:'',reportForm:{},
   userModal:null,userForm:{},userFormErr:'',
   entityModal:null,entityForm:{},entityFormErr:'',
+  lang: localStorage.getItem('appLang')||'ar',
 };
 
 // ===================== HELPERS =====================
@@ -803,10 +1065,10 @@ const nowDate=()=>{const d=new Date();return `${d.getFullYear()}-${pad(d.getMont
 const nowTime=()=>{const d=new Date();return `${pad(d.getHours())}:${pad(d.getMinutes())}`;};
 const nowDT=()=>nowDate()+' '+nowTime();
 const genNo=()=>'CR-2024-'+String(DB.nextNum).padStart(4,'0');
-const sevLabel=(s)=>({critical:'حرج جداً',high:'عالي',medium:'متوسط',low:'منخفض'}[s]||s);
+const sevLabel=(s)=>({critical:t('critical'),high:t('high'),medium:t('medium'),low:t('low')}[s]||s);
 const sevBadge=(s)=>`<span class="badge badge-${s}">${sevLabel(s)}</span>`;
-const stBadge=(s)=>({sent:'<span class="badge badge-sent">مرسل</span>',received:'<span class="badge badge-received">تم الاستلام</span>'}[s]||s);
-const roleLabel=(r)=>({admin:'مدير النظام',hospital_staff:'موظف مستشفى',center_staff:'موظف مركز'}[r]||r);
+const stBadge=(s)=>({sent:`<span class="badge badge-sent">${t('sent')}</span>`,received:`<span class="badge badge-received">${t('receivedStatus')}</span>`}[s]||s);
+const roleLabel=(r)=>({admin:t('roleAdmin'),hospital_staff:t('roleHospital'),center_staff:t('roleCenter')}[r]||r);
 
 function userReports(u){
   if(u.role==='admin') return [...DB.reports];
@@ -891,25 +1153,32 @@ function render(){
 function renderLogin(){
   return `<div class="login-page">
   <div class="login-card">
+    <div style="text-align:left;margin-bottom:8px">
+      <div class="lang-toggle" style="display:inline-flex">
+        <button class="lang-btn ${S.lang==='ar'?'active':''}" style="color:${S.lang==='ar'?'#1E3A5F':'#94A3B8'};cursor:pointer" onclick="switchLang('ar')">ع</button>
+        <button class="lang-btn ${S.lang==='en'?'active':''}" style="color:${S.lang==='en'?'#1E3A5F':'#94A3B8'};cursor:pointer" onclick="switchLang('en')">EN</button>
+      </div>
+    </div>
     <div class="login-brand">
       <div style="margin-bottom:6px">
         <span style="font-family:'Playfair Display',serif;font-size:38px;font-weight:800;letter-spacing:2px;background:linear-gradient(135deg,#1E3A5F,#2563EB,#0891B2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block">Critical</span>
         <span style="font-size:14px;font-weight:700;color:#475569;letter-spacing:1px">بلاغ</span>
       </div>
-      <p style="font-size:12px;color:#94A3B8;letter-spacing:0.5px">منظومة المستشفيات والمراكز الصحية</p>
+      <p style="font-size:12px;color:#94A3B8;letter-spacing:0.5px">${t('appSub')}</p>
     </div>
-    ${S.loginErr?`<div class="login-err"><span>⚠️</span>${S.loginErr}</div>`:''}
+    ${S.loginErr?`<div class="login-err"><span>⚠️</span>${t('loginErr')}</div>`:''}
     <div class="login-field">
-      <label>اسم المستخدم</label>
-      <input class="login-input" id="inp-user" type="text" placeholder="أدخل اسم المستخدم" autocapitalize="none" autocorrect="off" autocomplete="username" spellcheck="false" oninput="filterEng(this)">
+      <label>${t('username')}</label>
+      <input class="login-input" id="inp-user" type="text" placeholder="${t('enterUsername')}" autocapitalize="none" autocorrect="off" autocomplete="username" spellcheck="false" oninput="filterEng(this)">
     </div>
     <div class="login-field">
-      <label>كلمة المرور</label>
-      <input class="login-input" id="inp-pass" type="password" placeholder="أدخل كلمة المرور" autocapitalize="none" autocorrect="off" autocomplete="current-password" oninput="filterEng(this)">
+      <label>${t('password')}</label>
+      <input class="login-input" id="inp-pass" type="password" placeholder="${t('enterPassword')}" autocapitalize="none" autocorrect="off" autocomplete="current-password" oninput="filterEng(this)">
     </div>
-    <button class="login-btn" id="btn-login">تسجيل الدخول</button>
+    <button class="login-btn" id="btn-login">${t('loginBtn')}</button>
     <div class="login-logo-wrap">
       <img src="data:image/avif;base64,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" alt="شعار المنظومة" style="width:260px;height:260px;object-fit:contain">
+      <div class="login-version">${t('version')}</div>
     </div>
   </div></div>`;
 }
@@ -919,14 +1188,14 @@ function renderApp(){
   const u=S.user;
   const nc=unreadCount(u);
   const navItems=u.role==='center_staff'?[
-    {id:'center-inbox',icon:'📥',label:'البلاغات الواردة',count:nc},
-    {id:'center-done',icon:'✅',label:'المستلمة'},
+    {id:'center-inbox',icon:'📥',label:t('inbox'),count:nc},
+    {id:'center-done',icon:'✅',label:t('received')},
   ]:[
-    {id:'dashboard',icon:'📊',label:'لوحة التحكم'},
-    {id:'new-report',icon:'➕',label:'إنشاء بلاغ'},
-    {id:'reports',icon:'📋',label:'البلاغات',count:nc},
-    {id:'stats',icon:'📈',label:'التقارير'},
-    ...(u.role==='admin'?[{id:'hospitals',icon:'🏥',label:'المستشفيات'},{id:'centers',icon:'🏨',label:'المراكز الصحية'},{id:'users',icon:'👥',label:'المستخدمون'},{id:'audit',icon:'🔍',label:'سجل التدقيق'}]:[]),
+    {id:'dashboard',icon:'📊',label:t('dashboard')},
+    {id:'new-report',icon:'➕',label:t('newReport')},
+    {id:'reports',icon:'📋',label:t('reports'),count:nc},
+    {id:'stats',icon:'📈',label:t('stats')},
+    ...(u.role==='admin'?[{id:'hospitals',icon:'🏥',label:t('hospitals')},{id:'centers',icon:'🏨',label:t('centers')},{id:'users',icon:'👥',label:t('users')},{id:'audit',icon:'🔍',label:t('audit')}]:[]),
   ];
 
   return `
@@ -950,7 +1219,7 @@ function renderApp(){
           <div class="topbar-role">${roleLabel(u.role)}</div>
         </div>
       </div>
-      <button class="topbar-logout" id="btn-logout">خروج</button>
+      <button class="topbar-logout" id="btn-logout">${t('logout')}</button>
     </div>
   </div>
   ${renderNotifPanel()}
@@ -1016,15 +1285,15 @@ function renderDashboard(){
     <p>${hosp(u.hospitalId)?.name} · ${nowDate()}</p>
   </div>
   <div class="stats-grid">
-    <div class="stat-card blue"><span class="stat-icon">📋</span><div class="stat-value">${all.length}</div><div class="stat-label">إجمالي البلاغات</div></div>
-    <div class="stat-card orange"><span class="stat-icon">⏳</span><div class="stat-value">${sent}</div><div class="stat-label">بلاغات معلقة</div></div>
-    <div class="stat-card green"><span class="stat-icon">✅</span><div class="stat-value">${recv}</div><div class="stat-label">تم الاستلام</div></div>
-    <div class="stat-card red"><span class="stat-icon">⏱</span><div class="stat-value">${avg}</div><div class="stat-label">متوسط الاستجابة (د)</div></div>
+    <div class="stat-card blue"><span class="stat-icon">📋</span><div class="stat-value">${all.length}</div><div class="stat-label">${t('totalReports')}</div></div>
+    <div class="stat-card orange"><span class="stat-icon">⏳</span><div class="stat-value">${sent}</div><div class="stat-label">${t('pending')}</div></div>
+    <div class="stat-card green"><span class="stat-icon">✅</span><div class="stat-value">${recv}</div><div class="stat-label">${t('receivedCount')}</div></div>
+    <div class="stat-card red"><span class="stat-icon">⏱</span><div class="stat-value">${avg}</div><div class="stat-label">${t('avgResponse')}</div></div>
   </div>
   <div class="card">
     <div class="card-header">
-      <div><div class="card-title">أحدث البلاغات</div><div class="card-subtitle">آخر 6 بلاغات</div></div>
-      <button class="btn btn-primary btn-sm" data-view="new-report">➕ بلاغ جديد</button>
+      <div><div class="card-title">${t('latestReports')}</div><div class="card-subtitle">${t('last6')}</div></div>
+      <button class="btn btn-primary btn-sm" data-view="new-report">${t('addReport')}</button>
     </div>
     <div class="table-wrap"><table>
       <tr><th>رقم البلاغ</th><th>المريض</th><th>التحليل</th><th>الخطورة</th><th>المركز</th><th>الحالة</th><th>التاريخ</th></tr>
@@ -1040,7 +1309,7 @@ function renderDashboard(){
     </table></div>
   </div>
   <div class="card">
-    <div class="card-title" style="margin-bottom:16px">توزيع مستويات الخطورة</div>
+    <div class="card-title" style="margin-bottom:16px">${t('severityDist')}</div>
     ${['critical','high','medium','low'].map(s=>{
       const cnt=all.filter(r=>r.severity===s).length;
       const pct=all.length?Math.round(cnt/all.length*100):0;
@@ -1126,20 +1395,20 @@ function renderReports(){
   if(S.filterStatus!=='all') all=all.filter(r=>r.status===S.filterStatus);
   const colSpan=isAdmin?13:11;
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">سجل البلاغات</div><div class="page-subtitle">${total} بلاغ إجمالي</div></div><button class="btn btn-primary btn-sm" data-view="new-report">➕ بلاغ جديد</button></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('reportsTitle')}</div><div class="page-subtitle">${total} بلاغ إجمالي</div></div><button class="btn btn-primary btn-sm" data-view="new-report">➕ بلاغ جديد</button></div></div>
   <div class="tabs">
-    <button class="tab ${S.filterStatus==='all'?'active':''}" data-filter="all">الكل (${total})</button>
-    <button class="tab ${S.filterStatus==='sent'?'active':''}" data-filter="sent">🟡 معلق (${sentC})</button>
-    <button class="tab ${S.filterStatus==='received'?'active':''}" data-filter="received">✅ مستلم (${recvC})</button>
+    <button class="tab ${S.filterStatus==='all'?'active':''}" data-filter="all">${t('all')} (${total})</button>
+    <button class="tab ${S.filterStatus==='sent'?'active':''}" data-filter="sent">🟡 ${t('allPending')} (${sentC})</button>
+    <button class="tab ${S.filterStatus==='received'?'active':''}" data-filter="received">✅ ${t('allReceived')} (${recvC})</button>
   </div>
   <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap"><table>
     <tr>
-      <th>رقم البلاغ</th><th>المريض</th><th>رقم الملف</th><th>التحليل</th><th>الخطورة</th>
-      ${isAdmin?'<th>المستشفى</th>':''}
-      <th>المركز</th><th>الحالة</th>
-      <th>⏱ وقت الإرسال</th><th>✅ وقت الاستلام</th><th>مدة الاستجابة</th>
-      <th>تفاصيل</th>${isAdmin?'<th>حذف</th>':''}
+      <th>${t('reportNo')}</th><th>${t('patient')}</th><th>${t('fileNo')}</th><th>${t('testName')}</th><th>${t('severity')}</th>
+      ${isAdmin?`<th>${t('hospital')}</th>`:''}
+      <th>${t('center')}</th><th>${t('status')}</th>
+      <th>⏱ ${t('sendTime')}</th><th>✅ ${t('receiveTime')}</th><th>${t('duration')}</th>
+      <th>${t('details')}</th>${isAdmin?`<th>${t('delete')}</th>`:''}
     </tr>
     ${all.length===0?`<tr><td colspan="${colSpan}"><div class="empty-state"><span class="icon">📭</span><p>لا توجد بلاغات</p></div></td></tr>`:
     all.map(r=>{
@@ -1214,7 +1483,7 @@ function renderStats(){
   const delayed=all.filter(r=>{if(!r.viewedAt)return false;return diffMins(r.date,r.time,r.viewedAt)>30;});
   const pctRecv=all.length?Math.round(all.filter(r=>r.status==='received').length/all.length*100):0;
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">التقارير والإحصائيات</div><div class="page-subtitle">${hosp(u.hospitalId)?.name}</div></div><div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" onclick="doExport('pdf')">📄 PDF</button><button class="btn btn-secondary btn-sm" onclick="doExport('excel')">📊 Excel</button></div></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('statsTitle')}</div><div class="page-subtitle">${hosp(u.hospitalId)?.name}</div></div><div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" onclick="doExport('pdf')">📄 PDF</button><button class="btn btn-secondary btn-sm" onclick="doExport('excel')">📊 Excel</button></div></div></div>
   <div class="stats-grid">
     <div class="stat-card blue"><span class="stat-icon">📋</span><div class="stat-value">${all.length}</div><div class="stat-label">إجمالي البلاغات</div></div>
     <div class="stat-card green"><span class="stat-icon">📊</span><div class="stat-value">${pctRecv}%</div><div class="stat-label">نسبة الاستلام</div></div>
@@ -1248,7 +1517,7 @@ function renderStats(){
 // AUDIT
 function renderAudit(){
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">سجل التدقيق</div><div class="page-subtitle">${DB.auditLogs.length} عملية مسجلة</div></div></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('auditTitle')}</div><div class="page-subtitle">${DB.auditLogs.length} عملية مسجلة</div></div></div></div>
   <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap"><table>
     <tr><th>#</th><th>العملية</th><th>المستخدم</th><th>الصلاحية</th><th>التفاصيل</th><th>التاريخ والوقت</th></tr>
@@ -1268,7 +1537,7 @@ function renderAudit(){
 function renderUsers(){
   const uaClass=r=>r==='admin'?'ua-admin':r==='hospital_staff'?'ua-hospital':'ua-center';
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">إدارة المستخدمين</div><div class="page-subtitle">${DB.users.length} مستخدم مسجل في النظام</div></div><button class="btn btn-primary btn-sm" id="btn-add-user">➕ إضافة مستخدم</button></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('usersTitle')}</div><div class="page-subtitle">${DB.users.length} مستخدم مسجل في النظام</div></div><button class="btn btn-primary btn-sm" id="btn-add-user">➕ إضافة مستخدم</button></div></div>
   ${DB.users.map(u=>`
   <div class="user-card">
     <div class="user-avatar ${uaClass(u.role)}">${u.name.substring(0,2)}</div>
@@ -1374,7 +1643,7 @@ function renderUserModal(){
 // HOSPITALS PAGE
 function renderHospitals(){
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">إدارة المستشفيات</div><div class="page-subtitle">${DB.hospitals.length} مستشفى مسجلة في النظام</div></div><button class="btn btn-primary btn-sm" id="btn-add-hosp">➕ إضافة مستشفى</button></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('hospitalsTitle')}</div><div class="page-subtitle">${DB.hospitals.length} مستشفى مسجلة في النظام</div></div><button class="btn btn-primary btn-sm" id="btn-add-hosp">➕ إضافة مستشفى</button></div></div>
   ${DB.hospitals.map(h=>{
     const hospCenters=DB.centers.filter(c=>c.hospitalId===h.id);
     const hospUsers=DB.users.filter(u=>u.hospitalId===h.id);
@@ -1406,7 +1675,7 @@ function renderCenters(){
   DB.hospitals.forEach(h=>{ groupByHosp[h.id]={hosp:h,centers:[]}; });
   DB.centers.forEach(c=>{ if(groupByHosp[c.hospitalId]) groupByHosp[c.hospitalId].centers.push(c); });
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">إدارة المراكز الصحية</div><div class="page-subtitle">${DB.centers.length} مركز صحي مسجل</div></div><button class="btn btn-primary btn-sm" id="btn-add-center">➕ إضافة مركز</button></div></div>
+  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('centersTitle')}</div><div class="page-subtitle">${DB.centers.length} مركز صحي مسجل</div></div><button class="btn btn-primary btn-sm" id="btn-add-center">➕ إضافة مركز</button></div></div>
   ${Object.values(groupByHosp).map(g=>`
   <div class="card" style="margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E8ECEF">
@@ -1655,6 +1924,9 @@ function bindEvents(){
   document.getElementById('notif-btn')?.addEventListener('click',e=>{
     e.stopPropagation();S.showNotif=!S.showNotif;render();
   });
+  document.querySelectorAll('[data-lang]').forEach(el=>{
+    el.addEventListener('click',()=>switchLang(el.dataset.lang));
+  });
   document.addEventListener('click',e=>{
     if(S.showNotif&&!e.target.closest('#notif-panel')&&!e.target.closest('#notif-btn')){
       S.showNotif=false;render();
@@ -1707,6 +1979,15 @@ function bindEvents(){
   document.getElementById('entity-modal-overlay')?.addEventListener('click',e=>{if(e.target.id==='entity-modal-overlay'){S.entityModal=null;S.entityForm={};render();}});
   document.getElementById('btn-save-entity')?.addEventListener('click',saveEntity);
   document.getElementById('btn-confirm-entity-delete')?.addEventListener('click',confirmDeleteEntity);
+}
+
+function switchLang(lang){
+  S.lang = lang;
+  localStorage.setItem('appLang', lang);
+  // تحديث اتجاه الصفحة
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang==='en'?'ltr':'rtl';
+  render();
 }
 
 function filterEng(el){
@@ -2032,9 +2313,12 @@ function stopPolling(){
   document.getElementById('root').innerHTML=`
     <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A2980,#26D0CE);gap:16px">
       <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
-      <div style="color:#fff;font-size:15px;font-family:Cairo,sans-serif;font-weight:600">جاري تحميل النظام...</div>
+      <div style="color:#fff;font-size:15px;font-family:Cairo,sans-serif;font-weight:600">${t('loading')}</div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>`;
+  // تطبيق اللغة المحفوظة
+  document.documentElement.lang = S.lang;
+  document.documentElement.dir = S.lang==='en'?'ltr':'rtl';
   await loadData();
   // استعادة المستخدم بعد تحديث الصفحة أو العودة
   try{
