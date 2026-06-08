@@ -6,11 +6,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0F172A">
-<title>نظام البلاغات الطبية الحرجة</title>
+<title>Critical — بلاغ</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
 <style>
 /* ============ RESET & VARIABLES ============ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -892,8 +892,11 @@ function renderLogin(){
   return `<div class="login-page">
   <div class="login-card">
     <div class="login-brand">
-      <h1>نظام البلاغات الطبية الحرجة</h1>
-      <p>منظومة المستشفيات والمراكز الصحية</p>
+      <div style="margin-bottom:6px">
+        <span style="font-family:'Playfair Display',serif;font-size:38px;font-weight:800;letter-spacing:2px;background:linear-gradient(135deg,#1E3A5F,#2563EB,#0891B2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block">Critical</span>
+        <span style="font-size:14px;font-weight:700;color:#475569;letter-spacing:1px">بلاغ</span>
+      </div>
+      <p style="font-size:12px;color:#94A3B8;letter-spacing:0.5px">منظومة المستشفيات والمراكز الصحية</p>
     </div>
     ${S.loginErr?`<div class="login-err"><span>⚠️</span>${S.loginErr}</div>`:''}
     <div class="login-field">
@@ -931,7 +934,8 @@ function renderApp(){
     <div class="topbar-left">
       <div class="topbar-brand">
         <span class="topbar-brand-icon">🏥</span>
-        نظام البلاغات الطبية الحرجة
+        <span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:800;letter-spacing:1px;background:linear-gradient(135deg,#fff 0%,#93C5FD 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Critical</span>
+        <span style="font-size:11px;opacity:.6;font-weight:400;margin-right:2px">بلاغ</span>
       </div>
       <span class="topbar-hosp">${hosp(u.hospitalId)?.name||''}</span>
     </div>
