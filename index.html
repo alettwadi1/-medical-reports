@@ -180,8 +180,111 @@ textarea.form-control{resize:vertical;min-height:82px}
 .form-section-title{font-size:13px;font-weight:700;color:#5D6D7E;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid #E8ECEF}
 .delete-confirm{background:#FDF2F2;border:1.5px solid #F1948A;border-radius:10px;padding:14px 16px;margin-top:12px;text-align:center}
 
-@media(max-width:768px){.form-grid{grid-template-columns:1fr}.sidebar{width:190px}.stats-grid{grid-template-columns:1fr 1fr}.detail-grid{grid-column:1fr}}
-@media(max-width:560px){.sidebar{display:none}.main{padding:16px}}
+
+/* ============ MOBILE RESPONSIVE ============ */
+@media(max-width:768px){
+  .form-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .detail-grid{grid-template-columns:1fr}
+  .sidebar{width:200px}
+  .topbar{padding:0 14px;height:52px}
+  .topbar-brand{font-size:13px}
+  .topbar-brand span{font-size:16px}
+  .topbar-user span:not(.notif-badge){display:none}
+  .modal{border-radius:12px}
+  .modal-body{padding:16px}
+  table{font-size:12px}
+  th,td{padding:8px 10px}
+}
+
+@media(max-width:560px){
+  /* إخفاء الـ sidebar واستبداله بـ bottom nav */
+  .sidebar{display:none}
+  .main{padding:12px 12px 80px}
+  .layout{flex-direction:column}
+
+  /* topbar للجوال */
+  .topbar{padding:0 12px;height:50px}
+  .topbar-brand{font-size:12px;gap:6px}
+  .topbar-brand span{font-size:15px}
+  .topbar-user{gap:8px}
+  .avatar{width:28px;height:28px;font-size:11px}
+
+  /* الإحصائيات */
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .stat-value{font-size:22px}
+  .stat-card{padding:12px 14px}
+
+  /* البطاقات */
+  .card{padding:14px;border-radius:10px}
+  .card-title{font-size:14px}
+
+  /* الجداول - تحويل لبطاقات */
+  .table-wrap table thead{display:none}
+  .table-wrap table tr{display:block;background:#fff;border:1px solid #E8ECEF;border-radius:10px;margin-bottom:10px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+  .table-wrap table tr.unread{border-right:3px solid #E67E22;background:#FFFBF0}
+  .table-wrap table td{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border:none;font-size:13px}
+  .table-wrap table td:before{content:attr(data-label);font-size:11px;color:#7F8C8D;font-weight:600;flex-shrink:0;margin-left:8px}
+  .table-wrap table td:last-child{margin-top:8px;justify-content:flex-end}
+
+  /* الفورم */
+  .form-grid{grid-template-columns:1fr;gap:12px}
+  .form-control{font-size:16px;padding:11px 14px} /* 16px يمنع zoom في iOS */
+
+  /* الأزرار */
+  .btn{padding:10px 16px;font-size:13px}
+  .btn-sm{padding:7px 12px;font-size:12px}
+
+  /* النوافذ المنبثقة */
+  .modal-overlay{padding:0;align-items:flex-end}
+  .modal{border-radius:20px 20px 0 0;max-height:92vh}
+  .modal-header{padding:16px 18px 0}
+  .modal-body{padding:14px 18px 24px}
+  .modal-sm{max-width:100%}
+
+  /* لوحة الإشعارات */
+  .notif-panel{left:8px;right:8px;width:auto}
+
+  /* الـ tabs */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{padding:8px 14px;font-size:12px;white-space:nowrap}
+
+  /* page header */
+  .page-header h2{font-size:16px}
+  .page-header{margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
+  .page-header > div:last-child{align-self:flex-start}
+
+  /* user cards */
+  .user-card{flex-wrap:wrap;gap:10px}
+  .user-actions{width:100%;justify-content:flex-end}
+
+  /* bars */
+  .bar-label{width:90px;font-size:11px}
+
+  /* login */
+  .login-card{padding:28px 20px}
+  .login-logo h1{font-size:16px}
+}
+
+/* قائمة التنقل السفلية للجوال */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;right:0;left:0;
+  background:#fff;border-top:1px solid #E8ECEF;
+  z-index:150;padding:6px 0 8px;
+  box-shadow:0 -2px 12px rgba(0,0,0,0.08);
+}
+.bottom-nav-items{display:flex;justify-content:space-around;align-items:center}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;cursor:pointer;flex:1;position:relative;border:none;background:none;font-family:'Cairo',sans-serif}
+.bn-icon{font-size:20px;line-height:1}
+.bn-label{font-size:10px;color:#7F8C8D;font-weight:500}
+.bn-item.active .bn-label{color:#1A5276;font-weight:700}
+.bn-item.active .bn-icon{transform:scale(1.1)}
+.bn-badge{position:absolute;top:2px;right:50%;transform:translateX(10px);background:#E74C3C;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:700}
+
+@media(max-width:560px){
+  .bottom-nav{display:block}
+}
 </style>
 </head>
 <body>
@@ -590,26 +693,26 @@ function renderReports(){
       const mins=r.viewedAt?diffMins(r.date,r.time,r.viewedAt):null;
       const late=mins!==null&&mins>30;
       return `<tr class="${r.status==='sent'?'unread':''}">
-        <td><span class="report-no">${r.reportNo}</span></td>
-        <td style="font-weight:700">${r.patientName}</td>
-        <td style="font-size:12px">${r.fileNo}</td>
-        <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.testName}</td>
-        <td>${sevBadge(r.severity)}</td>
-        ${isAdmin?`<td style="font-size:11px;color:#1A5276;font-weight:600">${hosp(r.hospitalId)?.name||'—'}</td>`:''}
-        <td style="font-size:12px">${center(r.centerId)?.name||'-'}</td>
-        <td>${stBadge(r.status)}</td>
-        <td style="font-size:12px">
+        <td data-label="رقم البلاغ"><span class="report-no">${r.reportNo}</span></td>
+        <td data-label="المريض" style="font-weight:700">${r.patientName}</td>
+        <td data-label="رقم الملف" style="font-size:12px">${r.fileNo}</td>
+        <td data-label="التحليل" style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${r.testName}</td>
+        <td data-label="الخطورة">${sevBadge(r.severity)}</td>
+        ${isAdmin?`<td data-label="المستشفى" style="font-size:11px;color:#1A5276;font-weight:600">${hosp(r.hospitalId)?.name||'—'}</td>`:''}
+        <td data-label="المركز" style="font-size:12px">${center(r.centerId)?.name||'-'}</td>
+        <td data-label="الحالة">${stBadge(r.status)}</td>
+        <td data-label="وقت الإرسال" style="font-size:12px">
           <div style="color:#2C3E50;font-weight:600">${r.date}</div>
           <div style="color:#7F8C8D">${r.time}</div>
         </td>
-        <td style="font-size:12px">
+        <td data-label="وقت الاستلام" style="font-size:12px">
           ${r.viewedAt
             ? `<div style="color:#1E8449;font-weight:600">${r.viewedAt.split(' ')[0]}</div>
                <div style="color:#1E8449">${r.viewedAt.split(' ')[1]}</div>
                <div style="font-size:11px;color:#7F8C8D">${r.viewedBy}</div>`
             : '<span style="color:#95A5A6">—</span>'}
         </td>
-        <td style="font-size:12px;font-weight:${late?'700':'400'};color:${mins!==null?(late?'#C0392B':'#1E8449'):'#95A5A6'}">
+        <td data-label="مدة الاستجابة" style="font-size:12px;font-weight:${late?'700':'400'};color:${mins!==null?(late?'#C0392B':'#1E8449'):'#95A5A6'}">
           ${mins!==null?`${mins} د ${late?'⚠️':'✅'}`:'—'}
         </td>
         <td><button class="btn btn-secondary btn-sm" onclick="openReport(${r.id})">عرض</button></td>
@@ -975,6 +1078,36 @@ function renderEntityModal(){
   </div></div>`;
 }
 
+// BOTTOM NAV (جوال)
+function renderBottomNav(){
+  const u=S.user;
+  const nc=unreadCount(u);
+  const items=u.role==='center_staff'?[
+    {id:'center-inbox',icon:'📥',label:'الواردة',count:nc},
+    {id:'center-done',icon:'✅',label:'المستلمة'},
+  ]:[
+    {id:'dashboard',icon:'📊',label:'الرئيسية'},
+    {id:'new-report',icon:'➕',label:'بلاغ جديد'},
+    {id:'reports',icon:'📋',label:'البلاغات',count:nc},
+    {id:'stats',icon:'📈',label:'التقارير'},
+    ...(u.role==='admin'?[{id:'users',icon:'👥',label:'المستخدمون'}]:[]),
+  ];
+  return `<div class="bottom-nav">
+    <div class="bottom-nav-items">
+      ${items.map(item=>`
+        <button class="bn-item ${S.view===item.id?'active':''}" data-view="${item.id}">
+          <span class="bn-icon">${item.icon}</span>
+          <span class="bn-label">${item.label}</span>
+          ${item.count>0?`<span class="bn-badge">${item.count}</span>`:''}
+        </button>`).join('')}
+      <button class="bn-item" id="btn-logout-mobile">
+        <span class="bn-icon">🚪</span>
+        <span class="bn-label">خروج</span>
+      </button>
+    </div>
+  </div>`;
+}
+
 // MODAL
 function renderModal(){
   if(!S.selectedReport) return '<div class="modal-overlay" id="modal-overlay"></div>';
@@ -1114,6 +1247,15 @@ function bindEvents(){
   document.getElementById('btn-ack')?.addEventListener('click',acknowledgeReport);
   document.getElementById('btn-delete-report')?.addEventListener('click',()=>{
     if(S.selectedReport) confirmDeleteReport(S.selectedReport.id,true);
+  });
+  // Bottom nav
+  document.querySelectorAll('.bn-item[data-view]').forEach(el=>{
+    el.addEventListener('click',()=>{S.view=el.dataset.view;S.successMsg='';S.showNotif=false;render();});
+  });
+  document.getElementById('btn-logout-mobile')?.addEventListener('click',()=>{
+    stopPolling();
+    sessionStorage.removeItem('loggedUser');
+    S.user=null;S.view='login';S.loginErr='';S.showNotif=false;render();
   });
   // User management
   document.getElementById('btn-add-user')?.addEventListener('click',()=>{S.userModal='add';S.userForm={};S.userFormErr='';render();});
