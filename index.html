@@ -1080,6 +1080,7 @@ function bindEvents(){
   document.getElementById('btn-logout')?.addEventListener('click',()=>{
     addLog('تسجيل خروج',`${S.user.name} خرج من النظام`);
     stopPolling();
+    sessionStorage.removeItem('loggedUser');
     S.user=null;S.view='login';S.loginErr='';S.showNotif=false;render();
   });
   // Notif
@@ -1157,6 +1158,7 @@ async function doLogin(){
     render();return;
   }
   S.user=user;S.view=user.role==='center_staff'?'center-inbox':'dashboard';S.loginErr='';
+  sessionStorage.setItem('loggedUser', JSON.stringify(user));
   await sbInsert('audit_logs',{action:'تسجيل دخول',user_name:user.name,user_role:user.role,details:`دخل ${user.name} (${roleLabel(user.role)}) إلى النظام`,ts:nowDT()});
   await loadData();
   render();
@@ -1432,6 +1434,22 @@ function stopPolling(){
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>`;
   await loadData();
+  // استعادة المستخدم بعد تحديث الصفحة
+  try{
+    const saved = sessionStorage.getItem('loggedUser');
+    if(saved){
+      const u = JSON.parse(saved);
+      // تحقق أن المستخدم لا يزال موجوداً في قاعدة البيانات
+      const found = DB.users.find(x=>x.id===u.id&&x.username===u.username);
+      if(found){
+        S.user = found;
+        S.view = found.role==='center_staff'?'center-inbox':'dashboard';
+        startPolling();
+      } else {
+        sessionStorage.removeItem('loggedUser');
+      }
+    }
+  }catch(e){ sessionStorage.removeItem('loggedUser'); }
   render();
 })();
 </script>
