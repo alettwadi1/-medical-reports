@@ -2197,7 +2197,10 @@ function buildWhatsAppMsg(r){
   const divider = '━━━━━━━━━━━━━━━━━';
 
   let msg;
-  if(S.lang==='en'){
+  // نحدد لغة الرسالة بناءً على لغة البيانات (إذا الاسم عربي → عربي)
+  const isArabic = /[\u0600-\u06FF]/.test(r.patientName+r.testName+hn+cn);
+  const useLangEn = !isArabic && S.lang==='en';
+  if(useLangEn){
     msg = [
       '🚨 *CRITICAL MEDICAL REPORT*', divider,
       '📋 *Report No.:* '+r.reportNo,
