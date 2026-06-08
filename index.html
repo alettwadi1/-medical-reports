@@ -2184,56 +2184,59 @@ async function confirmDeleteUser(){
 
 // ===================== WHATSAPP =====================
 function buildWhatsAppMsg(r){
-  const hosp_name = hosp(r.hospitalId)?.name||'';
-  const center_name = center(r.centerId)?.name||'';
+  const hn = hosp(r.hospitalId)?.name||'';
+  const cn = center(r.centerId)?.name||'';
+  const sevAr = {critical:'حرج جداً 🔴',high:'عالي 🟠',medium:'متوسط 🟡',low:'منخفض 🟢'};
+  const sevEn = {critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'LOW'};
+  const statusAr = r.status==='received'
+    ? ('✅ تم الاستلام بواسطة '+r.viewedBy+' في '+r.viewedAt)
+    : '⏳ في الانتظار';
+  const statusEn = r.status==='received'
+    ? ('✅ Received by '+r.viewedBy+' at '+r.viewedAt)
+    : '⏳ Pending';
+  const divider = '━━━━━━━━━━━━━━━━━';
+
+  let msg;
   if(S.lang==='en'){
-    return encodeURIComponent(
-`🚨 *CRITICAL MEDICAL REPORT*
-━━━━━━━━━━━━━━━━━━
-📋 *Report No.:* ${r.reportNo}
-📅 *Date:* ${r.date} | ⏱ ${r.time}
-━━━━━━━━━━━━━━━━━━
-👤 *Patient:* ${r.patientName}
-🗂 *File No.:* ${r.fileNo}${r.idNo?'
-🪪 *ID:* '+r.idNo:''}
-━━━━━━━━━━━━━━━━━━
-🧪 *Test:* ${r.testName}
-🔴 *Critical Result:* ${r.criticalResult}
-⚠️ *Severity:* ${({critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'LOW'}[r.severity]||r.severity)}
-━━━━━━━━━━━━━━━━━━
-🏥 *Hospital:* ${hosp_name}
-🏨 *Health Center:* ${center_name}
-👨‍💼 *Reporter:* ${r.reporterName}
-🔬 *Lab Tech:* ${r.labTech}
-━━━━━━━━━━━━━━━━━━
-📊 *Status:* ${r.status==='received'?'✅ Received by '+r.viewedBy+' at '+r.viewedAt:'⏳ Pending'}
-${r.notes?'📝 *Notes:* '+r.notes:''}
-━━━━━━━━━━━━━━━━━━
-_Sent via Critical System_`);
+    msg = [
+      '🚨 *CRITICAL MEDICAL REPORT*', divider,
+      '📋 *Report No.:* '+r.reportNo,
+      '📅 *Date:* '+r.date+' | ⏱ '+r.time, divider,
+      '👤 *Patient:* '+r.patientName,
+      '🗂 *File No.:* '+r.fileNo,
+      r.idNo ? '🪪 *ID:* '+r.idNo : null, divider,
+      '🧪 *Test:* '+r.testName,
+      '🔴 *Critical Result:* '+r.criticalResult,
+      '⚠️ *Severity:* '+(sevEn[r.severity]||r.severity), divider,
+      '🏥 *Hospital:* '+hn,
+      '🏨 *Health Center:* '+cn,
+      '👨‍💼 *Reporter:* '+r.reporterName,
+      '🔬 *Lab Tech:* '+r.labTech, divider,
+      '📊 *Status:* '+statusEn,
+      r.notes ? '📝 *Notes:* '+r.notes : null, divider,
+      '_Sent via Critical System_'
+    ];
+  } else {
+    msg = [
+      '🚨 *بلاغ طبي حرج*', divider,
+      '📋 *رقم البلاغ:* '+r.reportNo,
+      '📅 *التاريخ:* '+r.date+' | ⏱ '+r.time, divider,
+      '👤 *المريض:* '+r.patientName,
+      '🗂 *رقم الملف:* '+r.fileNo,
+      r.idNo ? '🪪 *رقم الهوية:* '+r.idNo : null, divider,
+      '🧪 *التحليل:* '+r.testName,
+      '🔴 *النتيجة الحرجة:* '+r.criticalResult,
+      '⚠️ *مستوى الخطورة:* '+(sevAr[r.severity]||r.severity), divider,
+      '🏥 *المستشفى:* '+hn,
+      '🏨 *المركز الصحي:* '+cn,
+      '👨‍💼 *الموظف المبلغ:* '+r.reporterName,
+      '🔬 *موظف المختبر:* '+r.labTech, divider,
+      '📊 *الحالة:* '+statusAr,
+      r.notes ? '📝 *ملاحظات:* '+r.notes : null, divider,
+      '_تم الإرسال عبر نظام Critical_'
+    ];
   }
-  return encodeURIComponent(
-`🚨 *بلاغ طبي حرج*
-━━━━━━━━━━━━━━━━━━
-📋 *رقم البلاغ:* ${r.reportNo}
-📅 *التاريخ:* ${r.date} | ⏱ ${r.time}
-━━━━━━━━━━━━━━━━━━
-👤 *المريض:* ${r.patientName}
-🗂 *رقم الملف:* ${r.fileNo}${r.idNo?'
-🪪 *رقم الهوية:* '+r.idNo:''}
-━━━━━━━━━━━━━━━━━━
-🧪 *التحليل:* ${r.testName}
-🔴 *النتيجة الحرجة:* ${r.criticalResult}
-⚠️ *مستوى الخطورة:* ${({critical:'حرج جداً 🔴',high:'عالي 🟠',medium:'متوسط 🟡',low:'منخفض 🟢'}[r.severity]||r.severity)}
-━━━━━━━━━━━━━━━━━━
-🏥 *المستشفى:* ${hosp_name}
-🏨 *المركز الصحي:* ${center_name}
-👨‍💼 *الموظف المبلغ:* ${r.reporterName}
-🔬 *موظف المختبر:* ${r.labTech}
-━━━━━━━━━━━━━━━━━━
-📊 *الحالة:* ${r.status==='received'?'✅ تم الاستلام بواسطة '+r.viewedBy+' في '+r.viewedAt:'⏳ في الانتظار'}
-${r.notes?'📝 *ملاحظات:* '+r.notes:''}
-━━━━━━━━━━━━━━━━━━
-_تم الإرسال عبر نظام Critical_`);
+  return encodeURIComponent(msg.filter(Boolean).join('\n'));
 }
 
 function sendWhatsApp(num){
@@ -2391,15 +2394,11 @@ async function pollNewReports(){
         // إشعار بصري بالاستجابة
         const box=document.createElement('div');
         box.style.cssText='position:fixed;top:70px;left:20px;background:linear-gradient(135deg,#1E8449,#27AE60);color:#fff;padding:14px 18px;border-radius:12px;font-family:Cairo,sans-serif;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:9999;max-width:300px;direction:rtl;animation:slideDown .3s ease;';
-        box.innerHTML=`<div style="font-weight:700;font-size:14px;margin-bottom:4px">✅ تم استلام البلاغ!</div>
-          <div style="opacity:.9">المريض: ${r.patientName}</div>
-          <div style="opacity:.8;font-size:12px;margin-top:2px">اطلع عليه: ${r.viewedBy}</div>
-          <div style="opacity:.8;font-size:11px;margin-top:2px">${r.viewedAt}</div>`;
+        box.innerHTML='<div style="font-weight:700;font-size:14px;margin-bottom:4px">✅ تم استلام البلاغ!</div><div style="opacity:.9">المريض: '+r.patientName+'</div><div style="opacity:.8;font-size:12px;margin-top:2px">اطلع عليه: '+r.viewedBy+'</div><div style="opacity:.8;font-size:11px;margin-top:2px">'+r.viewedAt+'</div>';
         document.body.appendChild(box);
         setTimeout(()=>{box.style.opacity='0';box.style.transition='opacity .5s';setTimeout(()=>box.remove(),500);},5000);
         if(Notification.permission==='granted'){
-          new Notification('✅ تم استلام البلاغ',{body:`المريض: ${r.patientName}
-اطلع عليه: ${r.viewedBy}`});
+          new Notification('✅ تم استلام البلاغ',{body:'المريض: '+r.patientName+'\nاطلع عليه: '+r.viewedBy});
         }
       });
       render();
@@ -2438,11 +2437,7 @@ function showPushNotif(r){
 
   // إشعار المتصفح (إذا مسموح)
   if(Notification.permission === 'granted'){
-    new Notification('🚨 بلاغ حرج جديد', {
-      body: `المريض: ${r.patientName}
-${r.testName}`,
-      icon: '/favicon.ico'
-    });
+    new Notification('🚨 بلاغ حرج جديد',{body:'المريض: '+r.patientName+'\n'+r.testName,icon:'/favicon.ico'});
   }
 }
 
@@ -2469,20 +2464,22 @@ function stopPolling(){
 
 // ===================== INIT =====================
 (async()=>{
+  // استرجاع الإعدادات أولاً قبل أي شيء
+  try{
+    const savedLang=localStorage.getItem('appLang');
+    if(savedLang) S.lang=savedLang;
+    const savedSet=localStorage.getItem('appSettings');
+    if(savedSet) Object.assign(DB.settings,JSON.parse(savedSet));
+  }catch(e){}
+  document.documentElement.lang=S.lang;
+  document.documentElement.dir=S.lang==='en'?'ltr':'rtl';
+
   document.getElementById('root').innerHTML=`
-    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1A2980,#26D0CE);gap:16px">
-      <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
-      <div style="color:#fff;font-size:15px;font-family:Cairo,sans-serif;font-weight:600">${t('loading')}</div>
+    <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0F172A,#1E3A5F,#0891B2);gap:16px">
+      <div style="width:52px;height:52px;border:4px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="color:#fff;font-size:15px;font-family:Cairo,sans-serif;font-weight:600;letter-spacing:0.5px">${S.lang==='en'?'Loading...':'جاري تحميل النظام...'}</div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>`;
-  // استرجاع الإعدادات
-  try{
-    const saved=localStorage.getItem('appSettings');
-    if(saved) Object.assign(DB.settings,JSON.parse(saved));
-  }catch(e){}
-  // تطبيق اللغة المحفوظة
-  document.documentElement.lang = S.lang;
-  document.documentElement.dir = S.lang==='en'?'ltr':'rtl';
   await loadData();
   // استعادة المستخدم بعد تحديث الصفحة أو العودة
   try{
