@@ -2055,18 +2055,6 @@ function renderModal(){
         </div>
       </div>`:''}
 
-      <div class="detail-section">
-        <div class="detail-section-title">📱 ${t('whatsappSend')}</div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          ${DB.settings.whatsappDefault?`
-          <button class="btn btn-success" id="btn-wa-default" style="width:100%;justify-content:center">
-            <span style="font-size:16px">📲</span>
-            ${t('whatsappSend')} — ${t('whatsappDefault')}
-            <span style="opacity:.8;font-size:12px;margin-right:4px">(+${DB.settings.whatsappDefault})</span>
-          </button>`:''}
-
-        </div>
-      </div>
 
       ${u.role==='admin'?`
       <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
@@ -2252,23 +2240,12 @@ async function acknowledgeReport(){
   const r=S.selectedReport;if(!r)return;
   const dt=nowDT();
 
-  // إرسال واتساب للطبيب المختار (اختياري)
-  const doctorSel=document.getElementById('select-doctor');
-  const doctorId=doctorSel?.value;
-  const doctorPhone=doctorSel?.selectedOptions[0]?.dataset?.phone;
-  const doctorName=doctorSel?.selectedOptions[0]?.text;
-
   await sbUpdate('reports',r.id,{status:'received',viewed_at:dt,viewed_by:S.user.name});
   r.status='received';r.viewedAt=dt;r.viewedBy=S.user.name;
-  addLog('تأكيد استلام',`اطلع على البلاغ ${r.reportNo} للمريض ${r.patientName}`);
+  addLog('تأكيد استلام','اطلع على البلاغ '+r.reportNo+' للمريض '+r.patientName);
+  toast('✅ تم تسجيل الاطلاع بنجاح');
 
-  // إرسال واتساب للطبيب إذا تم اختياره
-  if(doctorPhone){
-    sendWhatsAppToDoctor(doctorPhone, doctorName, r);
-    addLog('إشعار طبيب',`تم إشعار د. ${doctorName} بالبلاغ ${r.reportNo}`);
-  }
-
-  toast('✅ تم تسجيل الاطلاع بنجاح' + (doctorPhone?' — جاري إشعار الطبيب 📲':''));
+  // أبقِ النافذة مفتوحة مع تحديث البيانات
   await loadData();
   S.selectedReport=DB.reports.find(x=>x.id===r.id)||r;
   render();
