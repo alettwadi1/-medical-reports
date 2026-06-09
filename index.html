@@ -740,6 +740,21 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .tab { padding: 8px 14px; font-size: 12px; }
 }
 </style>
+<script>
+// تسجيل Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').then(reg=>{
+    console.log('✅ SW registered');
+    // استماع لرسائل SW
+    navigator.serviceWorker.addEventListener('message', e=>{
+      if(e.data?.type==='OPEN_REPORT' && e.data.reportId){
+        const r = DB.reports.find(x=>x.id===e.data.reportId);
+        if(r){ S.selectedReport=r; render(); }
+      }
+    });
+  }).catch(e=>console.log('SW error:',e));
+}
+</script>
 </head>
 <body>
 <div id="root"></div>
@@ -2444,6 +2459,66 @@ function showPushNotif(r){
   }
 }
 
+// ===================== PUSH NOTIFICATIONS =====================
+async function setupPushNotifications(){
+  if(!S.user || S.user.role !== 'center_staff') return;
+  if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
+
+  try{
+    // طلب إذن الإشعارات
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      console.log('Notification permission denied');
+      return;
+    }
+
+    // حفظ بيانات المركز في Service Worker cache للـ background check
+    const reg = await navigator.serviceWorker.ready;
+    const cache = await caches.open('critical-v1');
+    await cache.put('push-state', new Response(JSON.stringify({
+      centerId: S.user.centerId,
+      lastCheck: Date.now(),
+      sbUrl: 'https://xubygbcsvmphbggnzhbt.supabase.co/rest/v1',
+      sbKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YnlnYmNzdm1waGJnZ256aGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDg2MTQsImV4cCI6MjA5NjQyNDYxNH0.Q3p09tiRBjiBWXsh2mnqwtlER7MxH3VOwfe26o5iIHI'
+    })));
+
+    // تسجيل Periodic Background Sync إذا مدعوم
+    if('periodicSync' in reg){
+      try{
+        const status = await navigator.permissions.query({name:'periodic-background-sync'});
+        if(status.state === 'granted'){
+          await reg.periodicSync.register('check-reports',{minInterval: 15 * 60 * 1000}); // 15 دقيقة
+          console.log('✅ Periodic Sync registered');
+        }
+      }catch(e){ console.log('Periodic sync not supported'); }
+    }
+
+    console.log('✅ Push notifications setup complete for center:', S.user.centerId);
+  }catch(e){ console.log('Push setup error:', e); }
+}
+
+// إشعار فوري عند وصول بلاغ جديد (يعمل حتى لو الشاشة مقفلة)
+function sendImmediateNotif(r){
+  if(!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.ready.then(reg=>{
+    reg.showNotification('🚨 بلاغ حرج جديد!', {
+      body: 'المريض: '+r.patientName+'\n'+r.testName+'\n'+r.date+' '+r.time,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      vibrate: [300,100,300,100,300],
+      requireInteraction: true,
+      dir: 'rtl',
+      tag: 'report-'+r.id,
+      renotify: true,
+      data: { url: '/', reportId: r.id },
+      actions:[
+        {action:'view', title:'📖 اطلاع فوري'},
+        {action:'close', title:'✕'}
+      ]
+    });
+  }).catch(()=>{});
+}
+
 function startPolling(){
   // تهيئة قائمة البلاغات الحالية
   _lastReportIds = new Set(
@@ -2494,6 +2569,7 @@ function stopPolling(){
         S.user = found;
         S.view = found.role==='center_staff'?'center-inbox':'dashboard';
         startPolling();
+        setupPushNotifications();
       } else {
         sessionStorage.removeItem('loggedUser');
       }
