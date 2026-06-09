@@ -1156,21 +1156,60 @@ function toast(msg){
   setTimeout(()=>t.style.display='none',3000);
 }
 // ── نغمة تنبيه حرجة (أقوى من playBeep) ──
+// نغمة تنبيه عند وصول بلاغ جديد (مرة واحدة)
+function playBeepNew(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // نغمة صاعدة ثم هابطة — تنبيه واضح
+    const notes=[
+      {f:523,t:0,   d:0.15},  // C5
+      {f:659,t:0.15,d:0.15},  // E5
+      {f:784,t:0.30,d:0.15},  // G5
+      {f:1047,t:0.45,d:0.3},  // C6 (طويلة)
+    ];
+    notes.forEach(n=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=n.f; o.type='sine';
+      g.gain.setValueAtTime(0, ctx.currentTime+n.t);
+      g.gain.linearRampToValueAtTime(0.45, ctx.currentTime+n.t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+n.t+n.d);
+      o.start(ctx.currentTime+n.t);
+      o.stop(ctx.currentTime+n.t+n.d+0.05);
+    });
+  }catch(e){}
+}
+
+// نغمة تذكير متكررة كل 3 دقائق (أقوى وأطول)
 function playAlertSound(){
   try{
-    const ctx = new(window.AudioContext||window.webkitAudioContext)();
-    const times = [0, 0.3, 0.6];
-    times.forEach(t=>{
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // نمط SOS صوتي — 3 نبضات قصيرة + 3 طويلة + 3 قصيرة
+    const pattern=[
+      // 3 قصيرة
+      {f:880,t:0,   d:0.12},
+      {f:880,t:0.18,d:0.12},
+      {f:880,t:0.36,d:0.12},
+      // فاصل
+      // 3 طويلة
+      {f:660,t:0.65,d:0.28},
+      {f:660,t:1.00,d:0.28},
+      {f:660,t:1.35,d:0.28},
+      // فاصل
+      // 3 قصيرة
+      {f:880,t:1.80,d:0.12},
+      {f:880,t:1.98,d:0.12},
+      {f:880,t:2.16,d:0.12},
+    ];
+    pattern.forEach(n=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
       o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = 1200;
-      o.type = 'square';
-      g.gain.setValueAtTime(0, ctx.currentTime+t);
-      g.gain.linearRampToValueAtTime(0.4, ctx.currentTime+t+0.05);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+t+0.28);
-      o.start(ctx.currentTime+t);
-      o.stop(ctx.currentTime+t+0.3);
+      o.frequency.value=n.f; o.type='sine';
+      g.gain.setValueAtTime(0, ctx.currentTime+n.t);
+      g.gain.linearRampToValueAtTime(0.5, ctx.currentTime+n.t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+n.t+n.d);
+      o.start(ctx.currentTime+n.t);
+      o.stop(ctx.currentTime+n.t+n.d+0.05);
     });
   }catch(e){}
 }
@@ -1206,15 +1245,7 @@ function stopAlertTimer(){
 }
 
 function playBeep(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.connect(g);g.connect(ctx.destination);
-    o.frequency.value=880;o.type='sine';
-    g.gain.setValueAtTime(0.3,ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
-    o.start();o.stop(ctx.currentTime+0.5);
-  }catch(e){}
+  playBeepNew(); // استخدام النغمة الجديدة
 }
 function addLog(action,details){
   if(!S.user)return;
