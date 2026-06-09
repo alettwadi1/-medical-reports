@@ -53,6 +53,9 @@
   --topbar-h:      60px;
   --bottom-nav-h:  64px;
   --safe-bottom:   env(safe-area-inset-bottom, 0px);
+  --safe-top:      env(safe-area-inset-top, 0px);
+  --safe-left:     env(safe-area-inset-left, 0px);
+  --safe-right:    env(safe-area-inset-right, 0px);
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
@@ -177,13 +180,15 @@ body { font-family: var(--font); background: var(--bg); color: var(--text-primar
 
 /* ── TOPBAR ── */
 .topbar {
-  height: var(--topbar-h);
+  height: calc(var(--topbar-h) + var(--safe-top));
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 100%);
-  padding: 0 20px;
-  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--safe-top) 20px 0;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding-bottom: 0;
   position: sticky; top: 0; z-index: 100;
   box-shadow: 0 2px 16px rgba(0,0,0,0.2);
 }
+.topbar > * { margin-bottom: 10px; }
 .topbar-left { display: flex; align-items: center; gap: 12px; }
 .topbar-brand {
   font-size: 15px; font-weight: 700; color: #fff;
@@ -238,7 +243,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text-primar
 .topbar-logout:hover { background: rgba(255,255,255,0.2); }
 
 /* ── LAYOUT ── */
-.layout { display: flex; flex: 1; min-height: calc(100vh - var(--topbar-h)); }
+.layout { display: flex; flex: 1; min-height: calc(100vh - var(--topbar-h) - var(--safe-top)); }
 
 /* ── SIDEBAR ── */
 .sidebar {
@@ -248,8 +253,8 @@ body { font-family: var(--font); background: var(--bg); color: var(--text-primar
   padding: 16px 0;
   flex-shrink: 0;
   overflow-y: auto;
-  position: sticky; top: var(--topbar-h);
-  height: calc(100vh - var(--topbar-h));
+  position: sticky; top: calc(var(--topbar-h) + var(--safe-top));
+  height: calc(100vh - var(--topbar-h) - var(--safe-top));
 }
 .sidebar-section { padding: 0 12px; margin-bottom: 4px; }
 .sidebar-label {
@@ -284,7 +289,7 @@ body { font-family: var(--font); background: var(--bg); color: var(--text-primar
 
 /* ── NOTIFICATION PANEL ── */
 .notif-panel {
-  position: fixed; top: calc(var(--topbar-h) + 8px);
+  position: fixed; top: calc(var(--topbar-h) + var(--safe-top) + 8px);
   left: 16px; width: 340px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
@@ -664,6 +669,33 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 .lang-btn.active { background: rgba(255,255,255,0.2); color: #fff; border-radius: 20px; }
 
+/* ============ PRINT CSS ============ */
+@media print {
+  body { background: #fff !important; direction: rtl; font-family: 'Cairo', sans-serif; }
+  .topbar, .sidebar, .bottom-nav, .btn, .tabs, .modal-overlay,
+  .notif-panel, #toast, .page-header .btn, button { display: none !important; }
+  .layout { display: block !important; }
+  .main { padding: 0 !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
+  table { font-size: 11px !important; }
+  th, td { padding: 6px 8px !important; }
+  .report-no { background: #eee !important; -webkit-print-color-adjust: exact; }
+  .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #print-header { display: block !important; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}
+#print-header {
+  display: none;
+  text-align: center;
+  padding: 20px 0 16px;
+  border-bottom: 2px solid #0F172A;
+  margin-bottom: 20px;
+}
+#print-header h1 { font-size: 20px; font-weight: 800; color: #0F172A; margin-bottom: 4px; }
+#print-header p  { font-size: 12px; color: #666; }
+#print-header .print-meta { font-size: 11px; color: #888; margin-top: 6px; }
+
 /* ============ RESPONSIVE ============ */
 @media(max-width:1024px){
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -686,7 +718,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .sidebar { display: none; }
   .bottom-nav { display: block; }
   .main { padding: 14px 14px calc(var(--bottom-nav-h) + var(--safe-bottom) + 10px); }
-  .topbar { height: 52px; padding: 0 12px; }
+  .topbar { 
+    height: calc(52px + var(--safe-top)); 
+    padding: var(--safe-top) 12px 0;
+  }
   :root { --topbar-h: 52px; }
   .topbar-brand { font-size: 13px; }
   .topbar-brand-icon { font-size: 18px; }
@@ -1569,7 +1604,13 @@ function renderReports(){
   if(S.filterStatus!=='all') all=all.filter(r=>r.status===S.filterStatus);
   const colSpan=isAdmin?13:11;
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${t('reportsTitle')}</div><div class="page-subtitle">${total} بلاغ إجمالي</div></div><button class="btn btn-primary btn-sm" data-view="new-report">➕ بلاغ جديد</button></div></div>
+  <div class="page-header"><div class="page-header-row">
+    <div><div class="page-title">${t('reportsTitle')}</div><div class="page-subtitle">${total} بلاغ إجمالي</div></div>
+    <div style="display:flex;gap:8px" class="no-print">
+      <button class="btn btn-secondary btn-sm" onclick="printReports('${t('reportsTitle')}','${hosp(S.user.hospitalId)?.name} — '+total+' بلاغ')">📄 PDF</button>
+      <button class="btn btn-primary btn-sm" data-view="new-report">➕ ${t('addReport')}</button>
+    </div>
+  </div></div>
   <div class="tabs">
     <button class="tab ${S.filterStatus==='all'?'active':''}" data-filter="all">${t('all')} (${total})</button>
     <button class="tab ${S.filterStatus==='sent'?'active':''}" data-filter="sent">🟡 ${t('allPending')} (${sentC})</button>
@@ -1625,7 +1666,13 @@ function renderCenterReports(filter){
   const show=all.filter(r=>r.status===filter);
   const isInbox=filter==='sent';
   return `
-  <div class="page-header"><div class="page-header-row"><div><div class="page-title">${isInbox?'📥 البلاغات الواردة':'✅ البلاغات المستلمة'}</div><div class="page-subtitle">${center(u.centerId)?.name} · ${show.length} بلاغ</div></div></div></div>
+  <div class="page-header"><div class="page-header-row">
+    <div><div class="page-title">${isInbox?'📥 البلاغات الواردة':'✅ البلاغات المستلمة'}</div>
+    <div class="page-subtitle">${center(u.centerId)?.name} · ${show.length} بلاغ</div></div>
+    <button class="btn btn-secondary btn-sm no-print" onclick="printReports('${isInbox?'البلاغات الواردة':'البلاغات المستلمة'}','${center(u.centerId)?.name} — ${show.length} بلاغ')">
+      📄 تصدير PDF
+    </button>
+  </div></div>
   ${isInbox&&show.length>0?`<div class="alert alert-warning">⚠️ يوجد ${show.length} بلاغ جديد يتطلب الاطلاع الفوري</div>`:''}
   <div class="card" style="padding:0;overflow:hidden">
   <div class="table-wrap"><table>
@@ -2320,6 +2367,23 @@ async function acknowledgeReport(){
   await loadData();
   S.selectedReport=DB.reports.find(x=>x.id===r.id)||r;
   render();
+}
+
+function printReports(title, subtitle){
+  // أضف header للطباعة
+  let hdr = document.getElementById('print-header');
+  if(!hdr){
+    hdr = document.createElement('div');
+    hdr.id = 'print-header';
+    document.querySelector('.main').prepend(hdr);
+  }
+  const now = new Date();
+  const dateStr = now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0');
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  hdr.innerHTML = '<h1>'+title+'</h1>'
+    +'<p>'+subtitle+'</p>'
+    +'<div class="print-meta">تاريخ التصدير: '+dateStr+' — '+timeStr+' | نظام Critical للبلاغات الطبية الحرجة</div>';
+  window.print();
 }
 
 function doExport(type){
