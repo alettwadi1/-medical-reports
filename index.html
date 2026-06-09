@@ -2546,8 +2546,7 @@ function sendWhatsAppToDoctor(phone, doctorName, r){
     '━━━━━━━━━━━━━━━━━',
     '_تم الإرسال عبر نظام Critical_'
   ];
-  const msg=encodeURIComponent(lines.filter(Boolean).join('
-'));
+  const msg=encodeURIComponent(lines.filter(Boolean).join('\n'));
   window.open('https://wa.me/'+phone+'?text='+msg,'_blank');
 }
 
