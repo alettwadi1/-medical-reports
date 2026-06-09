@@ -740,12 +740,26 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .tab { padding: 8px 14px; font-size: 12px; }
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
 <script>
+// ── Firebase Config ──
+const firebaseConfig = {
+  apiKey: "AIzaSyB0pAoabkUttBhOqaQ2S_K0yzM5UUpru5Q",
+  authDomain: "critical-reports.firebaseapp.com",
+  projectId: "critical-reports",
+  storageBucket: "critical-reports.firebasestorage.app",
+  messagingSenderId: "174004397870",
+  appId: "1:174004397870:web:1ad8cc50f66e42ff2d3cbf"
+};
+firebase.initializeApp(firebaseConfig);
+const _fcmMessaging = firebase.messaging();
+const VAPID_KEY = "BINAoF92JvUwFANL6YnOICUio2kPOXrxd2k3dktbIB_FQX1Bv7LcywRu1XvOz96nxkmLRvpGE46md9wcAFLKoj4";
+
 // تسجيل Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/sw.js').then(reg=>{
-    console.log('✅ SW registered');
-    // استماع لرسائل SW
+  navigator.serviceWorker.register('/firebase-messaging-sw.js').then(reg=>{
+    console.log('✅ FCM SW registered');
     navigator.serviceWorker.addEventListener('message', e=>{
       if(e.data?.type==='OPEN_REPORT' && e.data.reportId){
         const r = DB.reports.find(x=>x.id===e.data.reportId);
@@ -2465,58 +2479,68 @@ async function setupPushNotifications(){
   if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
 
   try{
-    // طلب إذن الإشعارات
     const perm = await Notification.requestPermission();
-    if(perm !== 'granted'){
-      console.log('Notification permission denied');
-      return;
-    }
+    if(perm !== 'granted'){ console.log('Notification permission denied'); return; }
 
-    // حفظ بيانات المركز في Service Worker cache للـ background check
+    // الحصول على FCM Token
     const reg = await navigator.serviceWorker.ready;
-    const cache = await caches.open('critical-v1');
-    await cache.put('push-state', new Response(JSON.stringify({
-      centerId: S.user.centerId,
-      lastCheck: Date.now(),
-      sbUrl: 'https://xubygbcsvmphbggnzhbt.supabase.co/rest/v1',
-      sbKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh1YnlnYmNzdm1waGJnZ256aGJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDg2MTQsImV4cCI6MjA5NjQyNDYxNH0.Q3p09tiRBjiBWXsh2mnqwtlER7MxH3VOwfe26o5iIHI'
-    })));
+    const token = await _fcmMessaging.getToken({
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: reg
+    });
 
-    // تسجيل Periodic Background Sync إذا مدعوم
-    if('periodicSync' in reg){
-      try{
-        const status = await navigator.permissions.query({name:'periodic-background-sync'});
-        if(status.state === 'granted'){
-          await reg.periodicSync.register('check-reports',{minInterval: 15 * 60 * 1000}); // 15 دقيقة
-          console.log('✅ Periodic Sync registered');
-        }
-      }catch(e){ console.log('Periodic sync not supported'); }
-    }
+    if(!token){ console.log('No FCM token'); return; }
 
-    console.log('✅ Push notifications setup complete for center:', S.user.centerId);
-  }catch(e){ console.log('Push setup error:', e); }
+    // حفظ الـ token في Supabase مرتبطاً بالمستخدم والمركز
+    await sbInsert('push_tokens', {
+      user_id: S.user.id,
+      center_id: S.user.centerId,
+      token: token,
+      platform: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)?'mobile':'web',
+      created_at: nowDT()
+    }).catch(()=>{});
+
+    // حفظ token محلياً
+    localStorage.setItem('fcm_token', token);
+    console.log('✅ FCM token registered:', token.substring(0,20)+'...');
+
+    // استقبال الإشعارات عندما التطبيق مفتوح
+    _fcmMessaging.onMessage(payload=>{
+      console.log('📨 Foreground message:', payload);
+      const {title,body} = payload.notification||{};
+      const data = payload.data||{};
+      playBeep();
+      // إشعار مرئي داخل التطبيق
+      const box=document.createElement('div');
+      box.style.cssText='position:fixed;top:70px;left:20px;background:linear-gradient(135deg,#C0392B,#E74C3C);color:#fff;padding:14px 18px;border-radius:12px;font-family:Cairo,sans-serif;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:9999;max-width:300px;direction:rtl;cursor:pointer;';
+      box.innerHTML='<div style="font-weight:700;font-size:14px;margin-bottom:4px">'+title+'</div><div style="opacity:.9">'+body+'</div>';
+      box.onclick=()=>{ box.remove(); if(data.reportId){ const r=DB.reports.find(x=>x.id==data.reportId); if(r){S.selectedReport=r;render();} } };
+      document.body.appendChild(box);
+      setTimeout(()=>{ box.style.opacity='0'; box.style.transition='opacity .5s'; setTimeout(()=>box.remove(),500); },8000);
+      // تحديث البيانات
+      loadData().then(()=>render());
+    });
+
+  }catch(e){ console.log('Push setup error:', e.message); }
 }
 
-// إشعار فوري عند وصول بلاغ جديد (يعمل حتى لو الشاشة مقفلة)
-function sendImmediateNotif(r){
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.ready.then(reg=>{
-    reg.showNotification('🚨 بلاغ حرج جديد!', {
-      body: 'المريض: '+r.patientName+'\n'+r.testName+'\n'+r.date+' '+r.time,
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      vibrate: [300,100,300,100,300],
-      requireInteraction: true,
-      dir: 'rtl',
-      tag: 'report-'+r.id,
-      renotify: true,
-      data: { url: '/', reportId: r.id },
-      actions:[
-        {action:'view', title:'📖 اطلاع فوري'},
-        {action:'close', title:'✕'}
-      ]
+// إرسال FCM للمركز المستهدف (يصل حتى لو التطبيق مغلق)
+async function sendImmediateNotif(r){
+  try{
+    // إرسال عبر Netlify Function
+    await fetch('/.netlify/functions/notify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        centerId: r.centerId,
+        reportId: r.id,
+        title: '🚨 بلاغ حرج جديد!',
+        body: 'المريض: '+r.patientName+' | '+r.testName,
+        data: { reportId: String(r.id) }
+      })
     });
-  }).catch(()=>{});
+    console.log('✅ FCM notification sent for center:', r.centerId);
+  }catch(e){ console.log('FCM send error:', e.message); }
 }
 
 function startPolling(){
