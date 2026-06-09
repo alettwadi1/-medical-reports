@@ -2023,20 +2023,35 @@ function renderModal(){
 
       ${canAck?`<div style="margin-top:22px">
         <div style="border:1.5px solid var(--success-light);border-radius:var(--radius-md);padding:16px;background:var(--success-light)">
-          <div style="font-size:13px;font-weight:700;color:var(--success);margin-bottom:12px">✅ ${t('ackBtn')}</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px">👨‍⚕️ ${t('notifyDoctor')} (${t('optional')})</div>
-          ${DB.doctors.filter(d=>d.centerId===u.centerId&&d.isActive).length>0?
-            `<select class="form-control" id="select-doctor" style="margin-bottom:10px;font-size:14px">
-              <option value="">${t('selectDoctor')}</option>
-              ${DB.doctors.filter(d=>d.centerId===u.centerId&&d.isActive).map(d=>
-                `<option value="${d.id}" data-phone="${d.phone}">${d.name}${d.specialty?' — '+d.specialty:''}</option>`
-              ).join('')}
-            </select>`
-          :`<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">${t('noDoctors')}</div>`}
-          <button class="btn btn-success" id="btn-ack" style="width:100%;justify-content:center;padding:12px">
+
+          <button class="btn btn-success" id="btn-ack" style="width:100%;justify-content:center;padding:12px;margin-bottom:14px">
             ✅ ${t('ackBtn')}
           </button>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center">${t('ackSub')}</div>
+
+          <div style="border-top:1px solid rgba(0,0,0,0.08);padding-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:12px;font-weight:700;color:var(--text-secondary)">👨‍⚕️ ${t('notifyDoctor')}</div>
+              <button onclick="toggleDoctorSelect()" id="btn-toggle-doctor"
+                style="background:var(--accent);color:#fff;border:none;border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;font-family:Cairo,sans-serif;cursor:pointer">
+                📲 إشعار الطبيب
+              </button>
+            </div>
+            <div id="doctor-select-wrap" style="display:none">
+              ${DB.doctors.filter(d=>d.centerId===u.centerId&&d.isActive).length>0?
+                `<select class="form-control" id="select-doctor" style="font-size:14px;margin-bottom:10px">
+                  <option value="">${t('selectDoctor')}</option>
+                  ${DB.doctors.filter(d=>d.centerId===u.centerId&&d.isActive).map(d=>
+                    '<option value="'+d.id+'" data-phone="'+d.phone+'">'+d.name+(d.specialty?' — '+d.specialty:'')+'</option>'
+                  ).join('')}
+                </select>
+                <button class="btn btn-primary" id="btn-send-doctor" style="width:100%;justify-content:center">
+                  📲 ${t('sendToDoctor')}
+                </button>`
+              :'<div style="font-size:12px;color:var(--text-muted)">'+t('noDoctors')+'</div>'}
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;text-align:center">${t('ackSub')}</div>
         </div>
       </div>`:''}
 
@@ -2108,6 +2123,13 @@ function bindEvents(){
     if(e.target.id==='modal-overlay'){S.selectedReport=null;render();}
   });
   document.getElementById('btn-ack')?.addEventListener('click',acknowledgeReport);
+  document.getElementById('btn-send-doctor')?.addEventListener('click',()=>{
+    const sel=document.getElementById('select-doctor');
+    const phone=sel?.selectedOptions[0]?.dataset?.phone;
+    const name=sel?.selectedOptions[0]?.text;
+    if(!phone){toast('⚠️ اختر طبيباً أولاً');return;}
+    sendWhatsAppToDoctor(phone,name,S.selectedReport);
+  });
   document.getElementById('btn-delete-report')?.addEventListener('click',()=>{
     if(S.selectedReport) confirmDeleteReport(S.selectedReport.id,true);
   });
@@ -2512,6 +2534,16 @@ async function saveDoctor(){
     toast(t('doctorAdded'));
   }
   await loadData();S.doctorModal=null;S.doctorForm={};render();
+}
+
+function toggleDoctorSelect(){
+  const wrap=document.getElementById('doctor-select-wrap');
+  const btn=document.getElementById('btn-toggle-doctor');
+  if(!wrap)return;
+  const isHidden=wrap.style.display==='none';
+  wrap.style.display=isHidden?'block':'none';
+  btn.style.background=isHidden?'var(--success)':'var(--accent)';
+  btn.textContent=isHidden?'✕ إغلاق':'📲 إشعار الطبيب';
 }
 
 function sendWhatsAppToDoctor(phone, doctorName, r){
