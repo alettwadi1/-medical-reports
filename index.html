@@ -1159,7 +1159,7 @@ function toast(msg){
 // نغمة تنبيه عند وصول بلاغ جديد (مرة واحدة)
 function playBeepNew(){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const ctx=getAudioCtx();
     // نغمة صاعدة ثم هابطة — تنبيه واضح
     const notes=[
       {f:523,t:0,   d:0.15},  // C5
@@ -1183,7 +1183,7 @@ function playBeepNew(){
 // نغمة تذكير متكررة كل 3 دقائق (أقوى وأطول)
 function playAlertSound(){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const ctx=getAudioCtx();
     // نمط SOS صوتي — 3 نبضات قصيرة + 3 طويلة + 3 قصيرة
     const pattern=[
       // 3 قصيرة
@@ -1215,26 +1215,41 @@ function playAlertSound(){
 }
 
 // ── بدء التنبيه المتكرر للبلاغات المعلقة ──
+// AudioContext مشترك يبقى حياً
+let _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx || _audioCtx.state==='closed'){
+    _audioCtx = new(window.AudioContext||window.webkitAudioContext)();
+  }
+  // أعد تشغيله إذا كان متوقفاً
+  if(_audioCtx.state==='suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+
 function startAlertTimer(){
-  if(_alertTimer) return; // لا تبدأ مرتين
+  if(_alertTimer) return;
   const INTERVAL = 3 * 60 * 1000; // كل 3 دقائق
 
-  _alertTimer = setInterval(()=>{
+  _alertTimer = setInterval(async ()=>{
     if(!S.user || S.user.role !== 'center_staff') return;
-    // تحقق هل يوجد بلاغات معلقة
     const pending = DB.reports.filter(r=>r.centerId===S.user.centerId && r.status==='sent');
     if(pending.length > 0){
       _alertCount++;
+      // تأكد أن AudioContext مفعّل
+      try{
+        const ctx = getAudioCtx();
+        if(ctx.state==='suspended') await ctx.resume();
+      }catch(e){}
       playAlertSound();
-      // إشعار بصري تذكيري
+      // إشعار بصري
       const box = document.createElement('div');
-      box.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#DC2626,#B91C1C);color:#fff;padding:14px 24px;border-radius:12px;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;box-shadow:0 4px 24px rgba(220,38,38,0.5);z-index:9999;direction:rtl;text-align:center;animation:pulse 0.5s ease;cursor:pointer;';
+      box.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#DC2626,#B91C1C);color:#fff;padding:14px 24px;border-radius:12px;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;box-shadow:0 4px 24px rgba(220,38,38,0.5);z-index:9999;direction:rtl;text-align:center;cursor:pointer;min-width:280px;';
       box.innerHTML = '🚨 تذكير: يوجد ' + pending.length + ' بلاغ حرج لم يتم الاطلاع عليه!';
       box.onclick = ()=>{ box.remove(); S.view='center-inbox'; render(); };
       document.body.appendChild(box);
       setTimeout(()=>{ box.style.opacity='0'; box.style.transition='opacity .5s'; setTimeout(()=>box.remove(),500); }, 6000);
     } else {
-      stopAlertTimer(); // لا توجد بلاغات معلقة → أوقف التنبيه
+      stopAlertTimer();
     }
   }, INTERVAL);
   console.log('✅ Alert timer started — every 3 min');
@@ -2163,7 +2178,10 @@ function bindEvents(){
   document.getElementById('modal-overlay')?.addEventListener('click',e=>{
     if(e.target.id==='modal-overlay'){S.selectedReport=null;render();}
   });
-  document.getElementById('btn-ack')?.addEventListener('click',acknowledgeReport);
+  document.getElementById('btn-ack')?.addEventListener('click',()=>{
+    try{getAudioCtx();}catch(e){} // تفعيل AudioContext
+    acknowledgeReport();
+  });
   document.getElementById('btn-send-doctor')?.addEventListener('click',()=>{
     const sel=document.getElementById('select-doctor');
     const phone=sel?.selectedOptions[0]?.dataset?.phone;
@@ -2755,6 +2773,8 @@ function showPushNotif(r){
 // دالة يستدعيها المستخدم مباشرة (triggered by user gesture)
 async function enableNotifications(){
   if(!S.user || S.user.role !== 'center_staff') return;
+  // تفعيل AudioContext عند أول تفاعل
+  try{ getAudioCtx(); }catch(e){}
   if(typeof Notification === 'undefined'){
     toast('⚠️ الإشعارات غير مدعومة — افتح التطبيق من الشاشة الرئيسية (PWA)');
     return;
