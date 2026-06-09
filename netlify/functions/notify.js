@@ -117,7 +117,22 @@ exports.handler = async function(event){
       tokens.map(({token})=> sendFCM(token, title||'🚨 بلاغ حرج جديد', body||'', data||{reportId}, accessToken))
     );
 
-    return {statusCode:200,headers:CORS,body:JSON.stringify({sent:results.length,results})};
+    // حذف الـ tokens المنتهية تلقائياً
+    const expiredTokens = tokens.filter((_,i)=> results[i]?.status===404);
+    for(const {token} of expiredTokens){
+      await new Promise(resolve=>{
+        const req = https.request({
+          hostname: SB_HOST,
+          path: '/rest/v1/push_tokens?token=eq.'+encodeURIComponent(token),
+          method: 'DELETE',
+          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
+        }, res=>{ res.on('data',()=>{}); res.on('end',resolve); });
+        req.on('error',resolve); req.end();
+      });
+    }
+
+    const sent = results.filter(r=>r.status===200).length;
+    return {statusCode:200,headers:CORS,body:JSON.stringify({sent,expired:expiredTokens.length,results})};
   }catch(e){
     return {statusCode:500,headers:CORS,body:JSON.stringify({error:e.message})};
   }
