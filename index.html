@@ -1140,6 +1140,56 @@ function toast(msg){
   t.textContent=msg;t.style.display='block';
   setTimeout(()=>t.style.display='none',3000);
 }
+// ── نغمة تنبيه حرجة (أقوى من playBeep) ──
+function playAlertSound(){
+  try{
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    const times = [0, 0.3, 0.6];
+    times.forEach(t=>{
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 1200;
+      o.type = 'square';
+      g.gain.setValueAtTime(0, ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(0.4, ctx.currentTime+t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+t+0.28);
+      o.start(ctx.currentTime+t);
+      o.stop(ctx.currentTime+t+0.3);
+    });
+  }catch(e){}
+}
+
+// ── بدء التنبيه المتكرر للبلاغات المعلقة ──
+function startAlertTimer(){
+  if(_alertTimer) return; // لا تبدأ مرتين
+  const INTERVAL = 3 * 60 * 1000; // كل 3 دقائق
+
+  _alertTimer = setInterval(()=>{
+    if(!S.user || S.user.role !== 'center_staff') return;
+    // تحقق هل يوجد بلاغات معلقة
+    const pending = DB.reports.filter(r=>r.centerId===S.user.centerId && r.status==='sent');
+    if(pending.length > 0){
+      _alertCount++;
+      playAlertSound();
+      // إشعار بصري تذكيري
+      const box = document.createElement('div');
+      box.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#DC2626,#B91C1C);color:#fff;padding:14px 24px;border-radius:12px;font-family:Cairo,sans-serif;font-size:14px;font-weight:700;box-shadow:0 4px 24px rgba(220,38,38,0.5);z-index:9999;direction:rtl;text-align:center;animation:pulse 0.5s ease;cursor:pointer;';
+      box.innerHTML = '🚨 تذكير: يوجد ' + pending.length + ' بلاغ حرج لم يتم الاطلاع عليه!';
+      box.onclick = ()=>{ box.remove(); S.view='center-inbox'; render(); };
+      document.body.appendChild(box);
+      setTimeout(()=>{ box.style.opacity='0'; box.style.transition='opacity .5s'; setTimeout(()=>box.remove(),500); }, 6000);
+    } else {
+      stopAlertTimer(); // لا توجد بلاغات معلقة → أوقف التنبيه
+    }
+  }, INTERVAL);
+  console.log('✅ Alert timer started — every 3 min');
+}
+
+function stopAlertTimer(){
+  if(_alertTimer){ clearInterval(_alertTimer); _alertTimer=null; _alertCount=0; }
+}
+
 function playBeep(){
   try{
     const ctx=new(window.AudioContext||window.webkitAudioContext)();
@@ -2386,6 +2436,8 @@ async function confirmDeleteReport(id, fromModal=false){
 let _pollingTimer = null;
 let _loginPollingTimer = null;
 let _lastReportIds = new Set();
+let _alertTimer = null;      // مؤقت النغمة المتكررة
+let _alertCount = 0;         // عدد مرات التنبيه
 
 async function pollNewReports(){
   if(!S.user) return;
