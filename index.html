@@ -1260,6 +1260,7 @@ function renderApp(){
       <span class="topbar-hosp">${hosp(u.hospitalId)?.name||''}</span>
     </div>
     <div class="topbar-right">
+      ${u.role==='center_staff'?`<button onclick="enableNotifications()" style="background:${typeof Notification!=='undefined'&&Notification.permission==='granted'?'rgba(5,150,105,0.3)':'rgba(220,38,38,0.35)'};border:1px solid ${typeof Notification!=='undefined'&&Notification.permission==='granted'?'rgba(5,150,105,0.6)':'rgba(239,68,68,0.6)'};color:#fff;padding:5px 11px;border-radius:20px;font-size:11px;font-family:Cairo,sans-serif;font-weight:700;cursor:pointer;white-space:nowrap">${typeof Notification!=='undefined'&&Notification.permission==='granted'?'🔔 مفعّل':'🔕 فعّل الإشعارات'}</button>`:''}
       <div class="topbar-notif" id="notif-btn">
         🔔${nc>0?`<span class="notif-badge">${nc}</span>`:''}
       </div>
@@ -2474,13 +2475,34 @@ function showPushNotif(r){
 }
 
 // ===================== PUSH NOTIFICATIONS =====================
+// دالة يستدعيها المستخدم مباشرة (triggered by user gesture)
+async function enableNotifications(){
+  if(!S.user || S.user.role !== 'center_staff') return;
+  try{
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      toast('⚠️ لم يتم منح إذن الإشعارات — تحقق من إعدادات المتصفح');
+      return;
+    }
+    await setupPushNotifications();
+    toast('✅ تم تفعيل الإشعارات بنجاح');
+    render(); // تحديث لون الزر
+  }catch(e){
+    toast('❌ خطأ في تفعيل الإشعارات: '+e.message);
+    console.error(e);
+  }
+}
+
 async function setupPushNotifications(){
   if(!S.user || S.user.role !== 'center_staff') return;
   if(!('serviceWorker' in navigator) || !('Notification' in window)) return;
 
   try{
-    const perm = await Notification.requestPermission();
-    if(perm !== 'granted'){ console.log('Notification permission denied'); return; }
+    // تحقق من الإذن (يجب أن يكون مُعطى مسبقاً من enableNotifications)
+    if(Notification.permission !== 'granted'){
+      console.log('No notification permission');
+      return;
+    }
 
     // الحصول على FCM Token
     const reg = await navigator.serviceWorker.ready;
