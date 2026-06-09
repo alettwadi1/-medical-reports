@@ -2049,15 +2049,7 @@ function renderModal(){
             ${t('whatsappSend')} — ${t('whatsappDefault')}
             <span style="opacity:.8;font-size:12px;margin-right:4px">(+${DB.settings.whatsappDefault})</span>
           </button>`:''}
-          <div style="display:flex;gap:8px">
-            <input class="form-control" id="wa-custom-num" type="tel"
-              placeholder="${t('whatsappPh')}"
-              style="flex:1;font-size:14px"
-              value="${DB.settings.whatsappDefault||''}">
-            <button class="btn btn-primary" id="btn-wa-custom" style="flex-shrink:0">
-              <span style="font-size:16px">📲</span> ${t('whatsappCustom')}
-            </button>
-          </div>
+
         </div>
       </div>
 
