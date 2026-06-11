@@ -671,19 +671,43 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 
 /* ============ PRINT CSS ============ */
 @media print {
-  body { background: #fff !important; direction: rtl; font-family: 'Cairo', sans-serif; }
-  .topbar, .sidebar, .bottom-nav, .btn, .tabs, .modal-overlay,
-  .notif-panel, #toast, .page-header .btn, button { display: none !important; }
-  .layout { display: block !important; }
-  .main { padding: 0 !important; }
-  .card { box-shadow: none !important; border: 1px solid #ddd !important; break-inside: avoid; }
-  table { font-size: 11px !important; }
-  th, td { padding: 6px 8px !important; }
-  .report-no { background: #eee !important; -webkit-print-color-adjust: exact; }
-  .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  #print-header { display: block !important; }
-  .no-print { display: none !important; }
-  .print-only { display: block !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body { background:#fff !important; direction:rtl; font-family:'Cairo',sans-serif; margin:0; padding:16px; }
+
+  /* إخفاء عناصر الـ UI */
+  .topbar, .sidebar, .bottom-nav, .notif-panel, #toast,
+  .tabs, .modal-overlay, .no-print, .btn, button,
+  .page-header-row > *:last-child { display:none !important; }
+
+  /* إظهار الـ layout بشكل صحيح */
+  .app { display:block !important; }
+  .layout { display:block !important; }
+  .main { padding:0 !important; overflow:visible !important; }
+
+  /* هيدر الطباعة */
+  #print-header { display:block !important; }
+
+  /* الجدول */
+  .card { box-shadow:none !important; border:1px solid #ddd !important; margin-bottom:12px; break-inside:avoid; }
+  .table-wrap { overflow:visible !important; }
+  table { width:100% !important; font-size:10px !important; border-collapse:collapse; }
+  thead { display:table-header-group !important; background:#f0f0f0 !important; }
+  th { padding:6px 8px !important; font-size:9px !important; border:1px solid #ccc !important; background:#f0f0f0 !important; }
+  td { padding:5px 8px !important; font-size:10px !important; border:1px solid #eee !important; display:table-cell !important; }
+  td::before { display:none !important; }
+  tr { display:table-row !important; break-inside:avoid; }
+  tbody { display:table-row-group !important; }
+
+  /* الإحصائيات */
+  .stats-grid { display:grid !important; grid-template-columns:repeat(4,1fr) !important; gap:8px !important; }
+  .stat-card { border:1px solid #ddd !important; padding:10px !important; break-inside:avoid; }
+
+  /* الـ badges */
+  .badge { border:1px solid #ccc !important; }
+  .report-no { background:#eee !important; }
+
+  .no-print { display:none !important; }
+  .print-only { display:block !important; }
 }
 #print-header {
   display: none;
@@ -2413,20 +2437,24 @@ async function acknowledgeReport(){
 }
 
 function printReports(title, subtitle){
-  // أضف header للطباعة
+  const now = new Date();
+  const dateStr = now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0');
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+
+  // أنشئ أو حدّث header الطباعة
   let hdr = document.getElementById('print-header');
   if(!hdr){
     hdr = document.createElement('div');
     hdr.id = 'print-header';
-    document.querySelector('.main').prepend(hdr);
+    // أضفه في بداية body
+    document.body.prepend(hdr);
   }
-  const now = new Date();
-  const dateStr = now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0');
-  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   hdr.innerHTML = '<h1>'+title+'</h1>'
     +'<p>'+subtitle+'</p>'
-    +'<div class="print-meta">تاريخ التصدير: '+dateStr+' — '+timeStr+' | نظام Critical للبلاغات الطبية الحرجة</div>';
-  window.print();
+    +'<div class="print-meta">تاريخ التصدير: '+dateStr+' — '+timeStr+' &nbsp;|&nbsp; نظام Critical للبلاغات الطبية الحرجة</div>';
+
+  // تأكد أن CSS الطباعة يظهر الهيدر ويخفي الـ UI
+  setTimeout(()=>{ window.print(); }, 100);
 }
 
 function doExport(type){
