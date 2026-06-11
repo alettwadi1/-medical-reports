@@ -1674,7 +1674,7 @@ function renderReports(){
   <div class="page-header"><div class="page-header-row">
     <div><div class="page-title">${t('reportsTitle')}</div><div class="page-subtitle">${total} بلاغ إجمالي</div></div>
     <div style="display:flex;gap:8px" class="no-print">
-      <button class="btn btn-secondary btn-sm" onclick="printReports('${t('reportsTitle')}','${hosp(S.user.hospitalId)?.name} — '+total+' بلاغ')">📄 PDF</button>
+      <button class="btn btn-secondary btn-sm" onclick="printReports('${t('reportsTitle')}','${hosp(S.user.hospitalId)?.name||''} — ${total} بلاغ')">📄 PDF</button>
       <button class="btn btn-primary btn-sm" data-view="new-report">➕ ${t('addReport')}</button>
     </div>
   </div></div>
